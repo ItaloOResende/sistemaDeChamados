@@ -29,21 +29,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // NOVO: Coleta e limpa o celular
     // Assumimos que você está usando o ID 'num_celular' no HTML, mas o nome do campo é 'num_celular'
     // Limpamos a máscara (se o JS tiver aplicado)
-    $numero_de_celular = preg_replace("/[^0-9]/", "", $_POST['num_celular']);
+    $num_celular = preg_replace("/[^0-9]/", "", $_POST['num_celular']);
     
     
     // ATUALIZAÇÃO DA VALIDAÇÃO: Todos os 5 campos agora são obrigatórios
-    if (empty($nome_empresa) || empty($email_contato) || empty($contato_principal) || empty($numero_de_celular) || empty($localizacao)) {
+    if (empty($nome_empresa) || empty($email_contato) || empty($contato_principal) || empty($num_celular) || empty($localizacao)) {
         $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos são obrigatórios. Por favor, preencha todos os dados.</div>";
     } else {
         // QUERY SQL ATUALIZADA (Incluindo a nova coluna)
-        $sql = "INSERT INTO clientes (nome_empresa, localizacao, contato_principal, numero_de_celular, email_contato) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO clientes (nome_empresa, localizacao, contato_principal, num_celular, email_contato) VALUES (?, ?, ?, ?, ?)";
         
             // Prepared Statement para segurança
             $stmt = $conexao->prepare($sql);
             
             // "sssss" para 5 parâmetros string (nome, localizacao, contato, celular, email)
-            $stmt->bind_param("sssss", $nome_empresa, $localizacao, $contato_principal, $numero_de_celular, $email_contato); 
+            $stmt->bind_param("sssss", $nome_empresa, $localizacao, $contato_principal, $num_celular, $email_contato); 
 
             if ($stmt->execute()) {
                 // Sucesso na inserção 

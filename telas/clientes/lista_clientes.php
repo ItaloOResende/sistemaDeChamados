@@ -38,8 +38,8 @@ if (isset($_GET['status'])) {
 // 3. LÓGICA DE BUSCA DE DADOS (QUERY ATUALIZADA)
 // ---------------------------------------------
 
-// Query para selecionar todos os clientes, INCLUINDO numero_de_celular
-$sql = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, numero_de_celular, email_contato FROM clientes ORDER BY nome_empresa ASC";
+// Query para selecionar todos os clientes, INCLUINDO num_celular
+$sql = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, num_celular, email_contato FROM clientes ORDER BY nome_empresa ASC";
 $resultado = $conexao->query($sql);
 
 // Verifica se houve erro na query
@@ -98,7 +98,7 @@ $conexao->close();
                         <td><?php echo htmlspecialchars($cliente['nome_empresa']); ?></td>
                         <td><?php echo htmlspecialchars($cliente['email_contato']); ?></td>
                         <td><?php echo htmlspecialchars($cliente['contato_principal']); ?></td>
-                        <td><?php echo htmlspecialchars($cliente['numero_de_celular']); ?></td>
+                        <td><?php echo htmlspecialchars($cliente['num_celular']); ?></td>
                         <td><?php echo htmlspecialchars($cliente['localizacao']); ?></td>
                         <td>
                             <a href="editar_cliente.php?id=<?php echo $cliente['id_cliente']; ?>" class="btn-acao btn-editar">Editar</a>

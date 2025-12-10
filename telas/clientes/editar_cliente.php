@@ -28,22 +28,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $contato_principal = trim($_POST['contato_principal']);
     $email_contato = trim($_POST['email_contato']); 
     // Limpeza da máscara
-    $numero_de_celular = preg_replace("/[^0-9]/", "", $_POST['numero_de_celular']); 
+    $num_celular = preg_replace("/[^0-9]/", "", $_POST['num_celular']); 
 
     // 2.2 Validação de Obrigatoriedade (Os 5 campos)
-    if (empty($nome_empresa) || empty($email_contato) || empty($contato_principal) || empty($numero_de_celular) || empty($localizacao)) {
+    if (empty($nome_empresa) || empty($email_contato) || empty($contato_principal) || empty($num_celular) || empty($localizacao)) {
         $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos são obrigatórios.</div>";
         // Mantém os dados no formulário em caso de erro
         $cliente = $_POST; 
         $cliente['id_cliente'] = $id_cliente; 
     } else {
         // 2.3 Query de Atualização
-        $sql_update = "UPDATE clientes SET nome_empresa = ?, localizacao = ?, contato_principal = ?, numero_de_celular = ?, email_contato = ? WHERE id_cliente = ?";
+        $sql_update = "UPDATE clientes SET nome_empresa = ?, localizacao = ?, contato_principal = ?, num_celular = ?, email_contato = ? WHERE id_cliente = ?";
         
         try {
             $stmt_update = $conexao->prepare($sql_update);
             // Tipos: sssssi (5 strings e 1 inteiro para o ID)
-            $stmt_update->bind_param("sssssi", $nome_empresa, $localizacao, $contato_principal, $numero_de_celular, $email_contato, $id_cliente); 
+            $stmt_update->bind_param("sssssi", $nome_empresa, $localizacao, $contato_principal, $num_celular, $email_contato, $id_cliente); 
 
             if ($stmt_update->execute()) {
                 // Sucesso na atualização -> Redireciona para a lista com status
@@ -78,7 +78,7 @@ if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id_cliente) && $i
     $id_para_busca = isset($_GET['id']) ? (int)$_GET['id'] : $id_cliente; 
     
     // Query de busca - COM TODOS OS CAMPOS
-    $sql_select = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, email_contato, numero_de_celular FROM clientes WHERE id_cliente = ?";
+    $sql_select = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, email_contato, num_celular FROM clientes WHERE id_cliente = ?";
     
     $stmt_select = $conexao->prepare($sql_select);
     $stmt_select->bind_param("i", $id_para_busca);
@@ -135,8 +135,8 @@ if (!$cliente && empty($mensagem)) {
                 <label for="contato_principal">Contato Principal (*):</label>
                 <input type="text" id="contato_principal" name="contato_principal" value="<?php echo htmlspecialchars($cliente['contato_principal']); ?>" required>
 
-                <label for="numero_de_celular">Número de Celular (*):</label>
-                <input type="tel" id="num_celular" name="numero_de_celular" value="<?php echo htmlspecialchars($cliente['numero_de_celular']); ?>" placeholder="(00) 00000-0000" maxlength="15" required>
+                <label for="num_celular">Número de Celular (*):</label>
+                <input type="tel" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($cliente['num_celular']); ?>" placeholder="(00) 00000-0000" maxlength="15" required>
                 
                 <label for="localizacao">Localização/Endereço (*):</label>
                 <input type="text" id="localizacao" name="localizacao" value="<?php echo htmlspecialchars($cliente['localizacao']); ?>" required>
