@@ -32,7 +32,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt_update->bind_param("sssi", $nome, $email, $num_celular_limpo, $id_tecnico); 
 
     if ($stmt_update->execute()) {
-        $mensagem = "<div class='msg-sucesso'>Técnico atualizado com sucesso!</div>";
+        $stmt_update->close();
+        $conexao->close();
+        
+        // Redireciona para a lista após o sucesso
+        header("Location: lista_tecnicos.php?status=sucesso");
+        exit(); // Interrompe a execução para garantir o redirecionamento
     } else {
         $mensagem = "<div class='msg-erro'>Erro ao atualizar: " . $stmt_update->error . "</div>";
     }
@@ -98,7 +103,7 @@ if (!$tecnico && $id_tecnico == 0) {
                 <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($tecnico['email']); ?>" required>
 
                 <label for="num_celular">Número de Celular:</label>
-                <input type="tel" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($tecnico['num_celular']); ?>" placeholder="(00) 00000-0000" maxlength="15">
+                <input type="tel" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($tecnico['num_celular']); ?>" required placeholder="(00) 00000-0000" maxlength="15">
                 
                 <button type="submit">Salvar Alterações</button>
             </form>

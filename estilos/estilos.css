@@ -96,13 +96,4 @@ th {
 #descricao_solicitacao {
     /* Esta linha forçará o campo a ocupar toda a largura horizontal */
     width: 100% !important;
-    
-    /* Esta linha garante que a borda e o padding não façam o campo estourar os 100% */
-    box-sizing: border-box; 
-    
-    /* Para definir a ALTURA (opcional, se você removeu 'rows' do HTML): */
-    height: 200px; 
-    
-    /* Adicione aqui qualquer outra formatação, como padding: */
-    padding: 10px;
 }

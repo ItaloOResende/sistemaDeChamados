@@ -72,7 +72,7 @@ $conexao->close();
         <form method="POST" action="">
             <h2>Detalhes da Solicitação</h2>
             
-            <label for="id_cliente">Cliente (Empresa):</label>
+            <label for="id_cliente">Cliente:</label>
             <select id="id_cliente" name="id_cliente" required>
                 <option value="">-- Selecione a Empresa --</option>
                 <?php while($cliente = $resultado_clientes->fetch_assoc()): ?>
@@ -83,7 +83,7 @@ $conexao->close();
             </select>
 
             <label for="id_tecnico_atribuido">Técnico Atribuído (Opcional):</label>
-            <select id="id_tecnico_atribuido" name="id_tecnico_atribuido">
+            <select id="id_tecnico_atribuido" name="id_tecnico_atribuido" required>
                 <option value="">-- Nenhum Técnico Atribuído (Novo) --</option>
                 <?php while($tecnico = $resultado_tecnicos->fetch_assoc()): ?>
                     <option value="<?php echo $tecnico['id_tecnico']; ?>">
@@ -113,7 +113,7 @@ $conexao->close();
         </form>
         
         <div class="voltar">
-             <a href="../lista_chamados.php">← Voltar para a Lista de Chamados</a>
+             <a href="lista_chamados.php">← Voltar para a Lista de Chamados</a>
         </div>
     </main>
     
