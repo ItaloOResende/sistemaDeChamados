@@ -1,0 +1,52 @@
+create database sistemadechamados;
+
+use sistemadechamados;
+
+| CLIENTES | CREATE TABLE `clientes` (
+  `id_cliente` int(11) NOT NULL AUTO_INCREMENT,
+  `nome_empresa` varchar(255) NOT NULL,
+  `localizacao` text DEFAULT NULL,
+  `contato_principal` varchar(100) DEFAULT NULL,
+  `num_celular` varchar(20) DEFAULT NULL,
+  `email_contato` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_cliente`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci |
+
+| tecnicos | CREATE TABLE `tecnicos` (
+  `id_tecnico` int(11) NOT NULL AUTO_INCREMENT,
+  `nome_tecnico` varchar(100) NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `num_celular` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id_tecnico`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci |
+
+-- Cria a Tabela Principal de Chamados (A "Coluna Mestra")
+CREATE TABLE chamados (
+    id_chamado INT AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    id_tecnico_atribuido INT,
+    data_abertura DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_fechamento DATETIME,
+    status ENUM('Novo', 'Em Atendimento', 'Aguardando Cliente', 'Concluído') NOT NULL DEFAULT 'Novo',
+    prioridade ENUM('Baixa', 'Média', 'Alta', 'Urgente') NOT NULL DEFAULT 'Média',
+    descricao_solicitacao TEXT NOT NULL, -- Descrição da solicitação
+    origem VARCHAR(50), -- EMAIL, WHATSAPP, PORTAL, TELEFONE
+    
+    -- Ligações (Chaves Estrangeiras)
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente),
+    FOREIGN KEY (id_tecnico_atribuido) REFERENCES tecnicos(id_tecnico)
+);
+
+-- Cria a Tabela de Interações (Histórico de Solução)
+CREATE TABLE interacoes (
+    id_interacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_chamado INT NOT NULL,
+    id_tecnico INT, -- Técnico que registrou esta interação
+    data_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    relato_solucao TEXT NOT NULL, -- O que foi feito, o diagnóstico, ou a solução
+    
+    -- Ligações (Chaves Estrangeiras)
+    FOREIGN KEY (id_chamado) REFERENCES chamados(id_chamado),
+    FOREIGN KEY (id_tecnico) REFERENCES tecnicos(id_tecnico)
+);
