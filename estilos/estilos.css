@@ -1,36 +1,59 @@
-/* estilos.css - Código Limpo e Completo */
+/* estilos.css - Versão Final Corrigida */
 
-/* Estilos Gerais */
+/* 1. Estilos Gerais */
 body { 
     font-family: Arial, sans-serif; 
     padding: 20px; 
-}
-h1 {
-    text-align: center; /* Centraliza o texto do h1 */
+    background-color: #f8f9fa;
 }
 
-/* Estilos de Formulário (usado em cadastro_tecnicos.php) */
+h1 { text-align: center; margin-bottom: 20px; }
+
+/* 2. Regra Padrão para Formulários (Técnicos, Clientes, etc.) */
 form { 
     max-width: 400px; 
-    margin: 0 auto; /* Centraliza o bloco do formulário */
+    margin: 0 auto; 
     padding: 20px; 
     border: 1px solid #ccc; 
     border-radius: 5px; 
+    background-color: #fff;
 }
+
+/* NOVA CLASSE: Use <form class="form-largo"> para Chamados e Detalhes */
+.form-largo {
+    max-width: 900px !important; 
+}
+
 label { 
     display: block; 
     margin-top: 10px; 
     font-weight: bold; 
 }
+
+/* 3. Inputs, Selects e Textareas Padronizados */
 input[type="text"], 
 input[type="email"], 
-input[type="tel"] { 
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+select,
+textarea { 
     width: 100%; 
     padding: 8px; 
     margin-top: 5px; 
     margin-bottom: 10px; 
-    box-sizing: border-box; 
+    box-sizing: border-box; /* Essencial para não quebrar a largura */
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
+
+/* Altura fixa para o Textarea em formulários largos */
+.form-largo textarea {
+    height: 180px;
+    display: block;
+    resize: vertical;
+}
+
 button { 
     background-color: #4CAF50; 
     color: white; 
@@ -38,48 +61,62 @@ button {
     border: none; 
     border-radius: 4px; 
     cursor: pointer; 
-}
-.voltar { 
-    display: block; 
-    text-align: center; 
-    margin-top: 15px; 
+    font-weight: bold;
 }
 
-/* Estilos de Mensagens de Feedback */
-.msg-sucesso {
-    color: green;
-    font-weight: bold;
-    border: 1px solid #c3e6cb; 
-    background-color: #d4edda; 
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-}
-.msg-erro {
-    color: red;
-    font-weight: bold;
-    border: 1px solid #f5c6cb;
-    background-color: #f8d7da;
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 4px;
+/* 4. Barra de Filtros (Horizontal Total) */
+.barra-filtros {
+    max-width: 100% !important; /* Ocupa a largura da tela na listagem */
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    align-items: flex-end; /* Alinha o fundo dos campos e botões */
+    background: #f4f4f4;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }
 
-/* Estilos de Tabela (usado em lista_tecnicos.php) */
+.barra-filtros .campo {
+    display: flex;
+    flex-direction: column; /* Label em cima, input embaixo */
+    gap: 4px;
+}
+
+/* Ajuste de larguras na barra de filtros para não encavalar */
+.campo-id { width: 60px; }
+.campo-cliente, .campo-tecnico { width: 160px; }
+.campo-data { width: 140px; }
+.campo-status { width: 130px; }
+.campo-busca { flex-grow: 1; } /* Estica para ocupar o espaço */
+
+.barra-filtros label { font-size: 11px; margin-top: 0; }
+.barra-filtros input, .barra-filtros select { height: 36px; margin-bottom: 0; }
+
+/* 5. Estilos de Tabela */
 table { 
     width: 100%; 
     border-collapse: collapse; 
     margin-top: 20px; 
+    background-color: #fff;
 }
 th, td { 
     border: 1px solid #ddd; 
     padding: 10px; 
     text-align: left; 
 }
-th { 
-    background-color: #f2f2f2; 
-    color: #333;
-}
+th { background-color: #f2f2f2; color: #333; }
+
+/* Cores de Prioridade */
+.prioridade-Alta, .prioridade-Urgente { color: red; font-weight: bold; }
+.prioridade-Média { color: orange; font-weight: bold; }
+.prioridade-Baixa { color: green; }
+
+/* 6. Mensagens e Botões de Ação */
+.msg-sucesso { color: green; background-color: #d4edda; padding: 10px; border: 1px solid #c3e6cb; border-radius: 4px; margin-bottom: 15px; }
+.msg-erro { color: red; background-color: #f8d7da; padding: 10px; border: 1px solid #f5c6cb; border-radius: 4px; margin-bottom: 15px; }
+
 .btn-acao { 
     background-color: #007bff; 
     color: white; 
@@ -87,13 +124,6 @@ th {
     text-decoration: none; 
     border-radius: 3px;
     font-size: 0.9em;
-    margin-right: 5px;
 }
-.btn-acao.exclui {
-    background-color: #dc3545;
-}
-
-#descricao_solicitacao {
-    /* Esta linha forçará o campo a ocupar toda a largura horizontal */
-    width: 100% !important;
-}
+.btn-acao.exclui { background-color: #dc3545; }
+.voltar { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #007bff; }
