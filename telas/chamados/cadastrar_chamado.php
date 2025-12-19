@@ -104,6 +104,7 @@ $conexao->close();
             <select id="origem" name="origem" required>
                 <option value="Sistema" selected>Sistema</option>
                 <option value="Telefone">Telefone</option>
+                <option value="Whatsaspp">E-mail</option>
                 <option value="Email">E-mail</option>
             </select>
             <label for="descricao_solicitacao">Descrição Detalhada do Problema:</label>
