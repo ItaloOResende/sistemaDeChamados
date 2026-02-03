@@ -61,6 +61,8 @@ $conexao->close();
 </head>
 <body>
 
+    <?php include_once('../principal/menu.php'); ?>
+    
     <header>
         <h1>Clientes Cadastrados</h1>
     </header>

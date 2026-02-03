@@ -42,6 +42,8 @@ $conexao->close();
 </head>
 <body>
 
+    <?php include_once('../principal/menu.php'); ?>
+    
     <header>
         <h1>👥 Técnicos Cadastrados</h1>
     </header>

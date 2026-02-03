@@ -82,6 +82,8 @@ if (!$tecnico && $id_tecnico == 0) {
 </head>
 <body>
 
+    <?php include_once('../principal/menu.php'); ?>
+    
     <header>
         <h1>✏️ Editar Técnico</h1>
     </header>

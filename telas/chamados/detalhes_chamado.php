@@ -70,6 +70,9 @@ $res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes O
     </style>
 </head>
 <body>
+
+    <?php include_once('../principal/menu.php'); ?>
+
     <header><h1>🛠️ Editar Chamado #<?php echo $id_chamado; ?></h1></header>
     <main>
         <?php if(isset($mensagem)) echo $mensagem; ?>
@@ -93,7 +96,7 @@ $res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes O
                         <option value="Telefone" <?php echo ($chamado['origem'] == 'Telefone') ? 'selected' : ''; ?>>Telefone</option>
                         <option value="Email" <?php echo ($chamado['origem'] == 'Email') ? 'selected' : ''; ?>>E-mail</option>
                         <option value="WhatsApp" <?php echo ($chamado['origem'] == 'WhatsApp') ? 'selected' : ''; ?>>WhatsApp</option>
-                        <option value="Portal" <?php echo ($chamado['origem'] == 'Portal') ? 'selected' : ''; ?>>Portal Web</option>
+                        <option value="Portal" <?php echo ($chamado['origem'] == 'Portal') ? 'selected' : ''; ?>>Sistema</option>
                     </select>
                 </div>
 

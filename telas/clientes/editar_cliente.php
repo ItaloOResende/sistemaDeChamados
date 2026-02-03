@@ -112,6 +112,8 @@ if (!$cliente && empty($mensagem)) {
 </head>
 <body>
 
+    <?php include_once('../principal/menu.php'); ?>
+    
     <header>
         <h1>✏️ Editar Cliente</h1>
     </header>

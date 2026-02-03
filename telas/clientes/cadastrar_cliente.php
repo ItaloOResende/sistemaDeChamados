@@ -81,6 +81,8 @@ $conexao->close();
 </head>
 <body>
 
+    <?php include_once('../principal/menu.php'); ?>
+    
     <header>
         <h1>Cadastro de Clientes</h1>
     </header>
