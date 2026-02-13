@@ -1,59 +1,50 @@
 <?php
 // ---------------------------------------------
-// 1. CONFIGURAÇÕES
+// 1. CONFIGURAÇÕES E CONEXÃO
 // ---------------------------------------------
 $servidor = "localhost";
 $usuario = "root";
-$senha = "";
-$banco = "sistemadechamados";
+$senha = ""; 
+$banco = "sistemadechamados"; 
 
-// ---------------------------------------------
-// 2. CONEXÃO COM O BANCO DE DADOS
-// ---------------------------------------------
 $conexao = new mysqli($servidor, $usuario, $senha, $banco);
 
 if ($conexao->connect_error) {
-    // Em caso de falha crítica na conexão, encerra a execução
-    header("Location: lista_clientes.php?status=error_conexao");
-    exit();
+    die("Falha na conexão");
 }
 
 // ---------------------------------------------
-// 3. VERIFICAÇÃO E PROCESSAMENTO DO ID
+// 2. PROCESSAMENTO DO ID
 // ---------------------------------------------
+$id_cliente = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-// Verifica se o ID foi passado via GET (como esperado pela sua função JS)
-if (!isset($_GET['id'])) {
-    header("Location: lista_clientes.php?status=error_no_id");
-    exit();
-}
-
-// Pega o ID e garante que é um inteiro (boa prática de segurança)
-$id_cliente = (int) $_GET['id'];
-
-// Query de Exclusão focada na tabela clientes
-$sql = "DELETE FROM clientes WHERE id_cliente = $id_cliente";
-
-// ---------------------------------------------
-// 4. TENTA EXECUTAR A EXCLUSÃO
-// ---------------------------------------------
-if ($conexao->query($sql) === TRUE) {
-    // Exclusão BEM-SUCEDIDA
-    header("Location: lista_clientes.php?status=success_delete");
-    exit();
-} else {
-    // 5. TRATAMENTO DE ERROS
-
-    // O código de erro comum para restrição de Foreign Key no MySQL é 1451
-    if ($conexao->errno == 1451) {
-        // Erro de FK: O cliente possui registros associados (chamados, interações)
-        header("Location: lista_clientes.php?status=error_fk");
-        exit();
+if ($id_cliente > 0) {
+    // ---------------------------------------------
+    // 3. LÓGICA DE INATIVAÇÃO (SOFT DELETE)
+    // ---------------------------------------------
+    
+    // Verifiquei na sua imagem do MariaDB que a coluna se chama status_empresa
+    // Forçamos o valor 'Inativo' como uma string simples
+    $sql = "UPDATE clientes SET status_empresa = 'Inativo' WHERE id_cliente = ?";
+    
+    $stmt = $conexao->prepare($sql);
+    $stmt->bind_param("i", $id_cliente);
+    
+    if ($stmt->execute()) {
+        // Se o número de linhas afetadas for maior que 0, deu certo
+        if ($stmt->affected_rows > 0) {
+            echo "SUCESSO";
+        } else {
+            // Se cair aqui, o ID existe mas o status já era 'Inativo' ou a query falhou silenciosamente
+            echo "SEM_ALTERACAO"; 
+        }
     } else {
-        // Outro Erro: Erro genérico na exclusão
-        header("Location: lista_clientes.php?status=error_delete");
-        exit();
+        echo "ERRO_SQL: " . $conexao->error;
     }
+    
+    $stmt->close();
+} else {
+    echo "ID_INVALIDO";
 }
 
 $conexao->close();

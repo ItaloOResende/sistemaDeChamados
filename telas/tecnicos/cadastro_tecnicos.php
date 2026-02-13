@@ -99,7 +99,7 @@ $conexao->close();
         echo "
             <script>
                 // Chama a função JS (que está no mascaras.js)
-                mostrarSucessoERedirecionar('Técnico cadastrado com sucesso!', 'lista_tecnicos.php');
+                mostrarSucessoERedirecionar('✅ Técnico cadastrado com sucesso!', 'lista_tecnicos.php');
 
             </script>
         ";

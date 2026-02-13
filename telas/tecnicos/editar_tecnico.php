@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $conexao->close();
         
         // Redireciona para a lista após o sucesso
-        header("Location: lista_tecnicos.php?status=sucesso");
+        header("Location: lista_tecnicos.php?status=success_edit");
         exit(); // Interrompe a execução para garantir o redirecionamento
     } else {
         $mensagem = "<div class='msg-erro'>Erro ao atualizar: " . $stmt_update->error . "</div>";

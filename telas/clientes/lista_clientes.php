@@ -7,16 +7,14 @@ $usuario = "root";
 $senha = "";
 $banco = "sistemadechamados"; 
 
-// Criar a conexão
 $conexao = new mysqli($servidor, $usuario, $senha, $banco);
 
-// Checar a conexão
 if ($conexao->connect_error) {
     die("Falha na conexão: " . $conexao->connect_error);
 }
 
 // ---------------------------------------------
-// 2. TRATAMENTO DE FEEDBACK VIA URL (PARA USO EXCLUSIVO NO JS)
+// 2. TRATAMENTO DE FEEDBACK VIA URL
 // ---------------------------------------------
 $mensagem_feedback = "";
 if (isset($_GET['status'])) {
@@ -27,7 +25,6 @@ if (isset($_GET['status'])) {
     } elseif ($_GET['status'] == 'success_delete') {
         $mensagem_feedback = "<div class='msg-sucesso'>✅ Cliente excluído com sucesso!</div>";
     } elseif ($_GET['status'] == 'error_fk') {
-        // Erro de Foreign Key
         $mensagem_feedback = "<div class='msg-erro'>❌ Erro: Não é possível excluir este cliente. Ele possui chamados ativos no sistema.</div>";
     } elseif ($_GET['status'] == 'error_delete' || $_GET['status'] == 'error_no_id') {
         $mensagem_feedback = "<div class='msg-erro'>❌ Erro ao excluir o cliente.</div>";
@@ -35,14 +32,16 @@ if (isset($_GET['status'])) {
 }
 
 // ---------------------------------------------
-// 3. LÓGICA DE BUSCA DE DADOS (QUERY ATUALIZADA)
+// 3. LÓGICA DE BUSCA DE DADOS (FILTRANDO ATIVOS)
 // ---------------------------------------------
 
-// Query para selecionar todos os clientes, INCLUINDO num_celular
-$sql = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, num_celular, email_contato FROM clientes ORDER BY nome_empresa ASC";
+// 🚩 AJUSTE: Adicionado WHERE status_empresa = 'Ativo' para a lista não mostrar quem foi "excluído"
+$sql = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, num_celular, email_contato 
+        FROM clientes 
+        WHERE status_empresa = 'Ativo' 
+        ORDER BY nome_empresa ASC";
 $resultado = $conexao->query($sql);
 
-// Verifica se houve erro na query
 if (!$resultado) {
     $erro_query = "Erro na consulta: " . $conexao->error;
 } else {
@@ -64,22 +63,22 @@ $conexao->close();
     <?php include_once('../principal/menu.php'); ?>
     
     <header>
-        <h1>Clientes Cadastrados</h1>
+        <h1>👥 Clientes Cadastrados</h1>
     </header>
     <hr>
 
     <main>
         <div class="acoes">
-            <a href="cadastrar_cliente.php" class="btn-adicionar">➕ Adicionar Novo Cliente</a>
+            <a href="cadastrar_cliente.php" class="btn-adicionar" style="background-color: #4CAF50; color: white; padding: 10px; text-decoration: none; border-radius: 5px;">➕ Adicionar Novo Cliente</a>
         </div>
         
         <?php if ($erro_query): ?>
             <div class="msg-erro"><?php echo $erro_query; ?></div>
         <?php elseif ($resultado->num_rows == 0): ?>
-            <div class="msg-alerta">Nenhum cliente cadastrado ainda.</div>
+            <div class="msg-alerta">Nenhum cliente ativo encontrado.</div>
         <?php else: ?>
             
-            <p>Total de clientes: <strong><?php echo $resultado->num_rows; ?></strong></p>
+            <p>Total de clientes ativos: <strong><?php echo $resultado->num_rows; ?></strong></p>
 
             <table>
                 <thead>
@@ -105,12 +104,10 @@ $conexao->close();
                         <td>
                             <a href="editar_cliente.php?id=<?php echo $cliente['id_cliente']; ?>" class="btn-acao btn-editar">Editar</a>
                             
-                            <a href="excluir_cliente.php?id=<?php echo $cliente['id_cliente']; ?>" 
-                               class="btn-acao btn-excluir"
-                               onclick="return confirm('Tem certeza que deseja excluir o cliente <?php echo addslashes($cliente['nome_empresa']); ?>?');"
-                            >
-                                Excluir
-                            </a>
+                            <button type="button" class="btn-acao btn-excluir" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;" 
+                                onclick="excluirCliente(<?php echo $cliente['id_cliente']; ?>, '<?php echo addslashes($cliente['nome_empresa']); ?>', this)">
+                                 Excluir
+                            </button>
                         </td>
                     </tr>
                     <?php endwhile; ?>
@@ -122,12 +119,9 @@ $conexao->close();
     
     <script>
         <?php if (!empty($mensagem_feedback)): ?>
-        
-        // 1. Remove as tags HTML e exibe a mensagem de feedback no alerta
         var feedbackMensagem = "<?php echo strip_tags($mensagem_feedback); ?>";
         alert(feedbackMensagem);
 
-        // 2. Limpa o parâmetro 'status' da URL para que a mensagem não reapareça em F5
         if (window.history.replaceState) {
             var urlSemStatus = window.location.href.split('?')[0];
             window.history.replaceState(null, null, urlSemStatus);

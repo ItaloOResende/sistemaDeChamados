@@ -1,90 +1,84 @@
-// mascaras.js - CONTEÚDO FINAL COMPLETO E CORRIGIDO (SUBSTITUA TUDO!)
-
-// === LÓGICA DA MÁSCARA ===
+// === LÓGICA DA MÁSCARA DE CELULAR ===
 const inputCelular = document.getElementById('num_celular');
-
 function mascaraCelular(valor) {
+    if (!valor) return "";
     valor = valor.replace(/\D/g, "");
     valor = valor.replace(/^(\d{2})(\d)/g, "($1) $2");
     valor = valor.replace(/(\d)(\d{4})$/, "$1-$2");
     return valor;
 }
-
 if (inputCelular) {
     inputCelular.value = mascaraCelular(inputCelular.value);
-
     inputCelular.addEventListener('input', function(e) {
         e.target.value = mascaraCelular(e.target.value);
     });
 }
-// ==========================
 
-// === FUNÇÃO DE FEEDBACK E REDIRECIONAMENTO ===
+// === FUNÇÃO DO CADASTRO (FEEDBACK) ===
 function mostrarSucessoERedirecionar(mensagem, destino) {
     alert(mensagem);
     window.location.href = destino;
 }
-// ==========================
 
-// === FUNÇÃO DE EXCLUSÃO AJAX (excluirTecnico) ===
-function excluirTecnico(id, botao) {
-    if (confirm('Tem certeza que deseja excluir este técnico?')) {
-        
+// === FUNÇÃO DE EXCLUSÃO AJAX (Técnicos) ===
+function excluirTecnico(id, nome, botao) {
+    if (confirm('Tem certeza que deseja excluir ' + nome + '?')) {
         const xhr = new XMLHttpRequest();
-        // Caminho ajustado para AJAX (assumindo lista_tecnicos.php na raiz)
-        xhr.open('GET', '../telas/tecnicos/excluir_tecnico.php?id=' + id, true); 
-        
+        xhr.open('GET', 'excluir_tecnico.php?id=' + id, true); 
         xhr.onload = function () {
             if (xhr.status === 200) {
                 const response = xhr.responseText.trim(); 
-                
                 if (response === 'SUCESSO') {
-                    const linha = botao.closest('tr');
-                    linha.remove();
-                    alert('Técnico excluído com sucesso!');
-                    
-                } else if (response.includes('FK_ERROR')) {
-                    alert('❌ Erro: Não é possível excluir este técnico. Ele possui chamados no sistema.');
+                    alert('✅ Técnico ' + nome + ' excluído com sucesso!');
+                    location.reload(); 
                 } else {
-                    alert('❌ Erro desconhecido na exclusão. Tente novamente.');
+                    alert('Erro no servidor: ' + response);
                 }
             } else {
-                alert('Erro de conexão com o servidor: ' + xhr.status);
+                alert('Erro de conexão: ' + xhr.status);
             }
         };
-        
         xhr.send();
     }
 }
 
-// === FUNÇÃO DE EXCLUSÃO AJAX (excluirCliente) - UNIFICADO ===
-function excluirCliente(id, botao) {
-    if (confirm('Tem certeza que deseja excluir este cliente?')) {
-        
+// === FUNÇÃO DE EXCLUSÃO AJAX (Clientes) ===
+function excluirCliente(id, nome_empresa, botao) {
+    if (confirm('Tem certeza que deseja excluir o cliente ' + nome_empresa + '?')) {
         const xhr = new XMLHttpRequest();
-        // Caminho ajustado para o script de exclusão de clientes
         xhr.open('GET', 'excluir_cliente.php?id=' + id, true); 
-        
         xhr.onload = function () {
             if (xhr.status === 200) {
-                const response = xhr.responseText.trim(); 
-                
-                if (response === 'SUCESSO') {
-                    const linha = botao.closest('tr');
-                    linha.remove(); // Remove a linha da tabela
-                    alert('Cliente excluído com sucesso!');
-                    
-                } else if (response.includes('FK_ERROR')) {
-                    alert('❌ Erro: Não é possível excluir este cliente. Ele possui chamados no sistema.');
-                } else {
-                    alert('❌ Erro desconhecido na exclusão. Tente novamente.');
+                if (xhr.responseText.trim() === 'SUCESSO') {
+                    alert('✅ Cliente ' + nome_empresa + ' excluído com sucesso!');
+                    location.reload(); 
                 }
-            } else {
-                alert('Erro de conexão com o servidor: ' + xhr.status);
             }
         };
-        
         xhr.send();
     }
 }
-// ==========================
+
+// === VALIDAÇÃO DE FECHAMENTO DE CHAMADO (CORRIGIDA) ===
+document.addEventListener('DOMContentLoaded', function() {
+    const campoStatus = document.querySelector('select[name="status"]');
+    const campoSolucao = document.querySelector('textarea[name="solucao"]');
+
+    if (campoStatus && campoSolucao) {
+        // Função para ligar/desligar o 'required'
+        const validarNativo = () => {
+            const status = campoStatus.value;
+            if (status === 'Concluido') {
+                campoSolucao.required = true;
+                campoSolucao.placeholder = "Obrigatório para encerrar o chamado...";
+            } else {
+                campoSolucao.required = false;
+                campoSolucao.placeholder = "Descreva aqui o que foi feito...";
+            }
+        };
+
+        // Roda ao carregar a página e sempre que mudar o status
+        validarNativo();
+        campoStatus.addEventListener('change', validarNativo);
+    }
+});

@@ -27,7 +27,7 @@ if (isset($_GET['status'])) {
 }
 
 // 🚩 ALTERAÇÃO FEITA AQUI: Ordenando por id_tecnico
-$sql = "SELECT id_tecnico, nome_tecnico, email, num_celular FROM tecnicos ORDER BY id_tecnico ASC";
+$sql = "SELECT id_tecnico, nome_tecnico, email, num_celular FROM tecnicos WHERE ativo = 'Ativo' ORDER BY id_tecnico ASC";
 $resultado = $conexao->query($sql);
 
 $conexao->close();
@@ -73,9 +73,10 @@ $conexao->close();
                             <td><?php echo $linha['num_celular']; ?></td>
                             <td>
                                 <a href="editar_tecnico.php?id=<?php echo $linha['id_tecnico']; ?>" class="btn-acao">Editar</a>
-                                <a href="excluir_tecnico.php?id=<?php echo $linha['id_tecnico']; ?>" class="btn-acao"
-                                onclick="return confirm('Tem certeza que deseja excluir o técnico <?php echo addslashes($linha['nome_tecnico']); ?>?');">Excluir</a>
-                            </td>
+<button type="button" class="btn-acao" style="background-color: #f44336; border: none; cursor: pointer;" 
+onclick="excluirTecnico(<?php echo $linha['id_tecnico']; ?>, '<?php echo addslashes($linha['nome_tecnico']); ?>', this)">
+    Excluir
+</button></td>
                         </tr>
                     <?php endwhile; ?>
                 </tbody>
@@ -101,7 +102,7 @@ $conexao->close();
         <?php endif; ?>
     </script>
     
-    <script src="../js/mascaras.js"></script>
+    <script src="../../js/mascaras.js"></script>
 
 </body>
 </html>
