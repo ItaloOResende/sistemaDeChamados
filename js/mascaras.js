@@ -28,7 +28,8 @@ function mostrarSucessoERedirecionar(mensagem, destino) {
 function excluirTecnico(id, nome, botao) {
     if (confirm('Tem certeza que deseja excluir ' + nome + '?')) {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'excluir_tecnico.php?id=' + id, true); 
+        // CAMINHO ABSOLUTO: Garante que ache o arquivo não importa onde você esteja
+        xhr.open('GET', '/sistemaDeChamados/telas/tecnicos/excluir_tecnico.php?id=' + id, true); 
         xhr.onload = function () {
             if (xhr.status === 200) {
                 const response = xhr.responseText.trim(); 
@@ -39,7 +40,7 @@ function excluirTecnico(id, nome, botao) {
                     alert('Erro no servidor: ' + response);
                 }
             } else {
-                alert('Erro de conexão: ' + xhr.status);
+                alert('Erro de conexão: ' + xhr.status); // Aqui é onde aparecia o 404
             }
         };
         xhr.send();
@@ -50,13 +51,16 @@ function excluirTecnico(id, nome, botao) {
 function excluirCliente(id, nome_empresa, botao) {
     if (confirm('Tem certeza que deseja excluir o cliente ' + nome_empresa + '?')) {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'excluir_cliente.php?id=' + id, true); 
+        // CAMINHO ABSOLUTO: Aponta para a pasta de clientes
+        xhr.open('GET', '/sistemaDeChamados/telas/clientes/excluir_cliente.php?id=' + id, true); 
         xhr.onload = function () {
             if (xhr.status === 200) {
                 if (xhr.responseText.trim() === 'SUCESSO') {
                     alert('✅ Cliente ' + nome_empresa + ' excluído com sucesso!');
                     location.reload(); 
                 }
+            } else {
+                alert('Erro de conexão: ' + xhr.status);
             }
         };
         xhr.send();

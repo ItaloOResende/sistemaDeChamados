@@ -103,7 +103,7 @@ $conexao->close();
         <?php endif; ?>
     </script>
     
-    <script src="../../js/mascaras.js"></script>
+    <script src="/sistemaDeChamados/js/mascaras.js"></script>
 
 </body>
 </html>
