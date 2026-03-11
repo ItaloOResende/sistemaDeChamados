@@ -35,10 +35,10 @@ if (isset($_GET['status'])) {
 // 3. LÓGICA DE BUSCA DE DADOS (FILTRANDO ATIVOS)
 // ---------------------------------------------
 
-// 🚩 AJUSTE: Adicionado WHERE status_empresa = 'Ativo' para a lista não mostrar quem foi "excluído"
+// 🚩 AJUSTE: Alterado de status_empresa para status_cliente conforme o novo padrão
 $sql = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, num_celular, email_contato 
         FROM clientes 
-        WHERE status_empresa = 'Ativo' 
+        WHERE status_cliente = 'Ativo' 
         ORDER BY nome_empresa ASC";
 $resultado = $conexao->query($sql);
 

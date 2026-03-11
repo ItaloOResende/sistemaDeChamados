@@ -23,9 +23,8 @@ if ($id_cliente > 0) {
     // 3. LÓGICA DE INATIVAÇÃO (SOFT DELETE)
     // ---------------------------------------------
     
-    // Verifiquei na sua imagem do MariaDB que a coluna se chama status_empresa
-    // Forçamos o valor 'Inativo' como uma string simples
-    $sql = "UPDATE clientes SET status_empresa = 'Inativo' WHERE id_cliente = ?";
+    // Alterado de status_empresa para status_cliente conforme o novo padrão
+    $sql = "UPDATE clientes SET status_cliente = 'Inativo' WHERE id_cliente = ?";
     
     $stmt = $conexao->prepare($sql);
     $stmt->bind_param("i", $id_cliente);

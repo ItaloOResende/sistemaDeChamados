@@ -20,8 +20,8 @@ $f_prioridade = $_GET['prioridade'] ?? '';
 $ordenar_por = $_GET['ordem'] ?? 'c.id_chamado'; // Ordenação padrão por ID
 $direcao     = $_GET['dir'] ?? 'DESC';
 
-// SQL Base com Joins
-$sql = "SELECT c.*, cli.nome_empresa, t.nome_tecnico, t.ativo as tecnico_ativo
+// SQL Base com Joins - Atualizado para status_tecnico
+$sql = "SELECT c.*, cli.nome_empresa, t.nome_tecnico, t.status_tecnico
         FROM chamados c
         LEFT JOIN clientes cli ON c.id_cliente = cli.id_cliente
         LEFT JOIN tecnicos t ON c.id_tecnico_atribuido = t.id_tecnico
@@ -45,9 +45,9 @@ if (!empty($params)) { $stmt->bind_param($types, ...$params); }
 $stmt->execute();
 $resultado = $stmt->get_result();
 
-// Filtros para os combos
-$lista_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_empresa = 'Ativo' ORDER BY nome_empresa ASC");
-$lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE ativo = 'Ativo' ORDER BY nome_tecnico ASC");
+// Filtros para os combos - Atualizados para status_cliente e status_tecnico
+$lista_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC");
+$lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE status_tecnico = 'Ativo' ORDER BY nome_tecnico ASC");
 ?>
 
 <!DOCTYPE html>
@@ -88,7 +88,7 @@ $lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos
 
         <form method="GET" class="barra-filtros">
             <div class="campo" style="max-width: 70px;"><label>ID</label>
-                <input type="number" name="id_chamado" value="<?php echo $f_id_chamado; ?>">
+                <input type="number" name="id_chamado" value="<?php echo htmlspecialchars($f_id_chamado); ?>">
             </div>
             
             <div class="campo"><label>Cliente</label>
@@ -110,7 +110,7 @@ $lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos
             </div>
 
             <div class="campo" style="max-width: 150px;"><label>Data Inicial</label>
-                <input type="date" name="data_inicio" value="<?php echo $f_data_inicio; ?>">
+                <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($f_data_inicio); ?>">
             </div>
 
             <div class="campo" style="max-width: 140px;"><label>Status</label>
@@ -124,7 +124,7 @@ $lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos
             </div>
 
             <div class="campo" style="flex-grow: 2;"><label>Busca (Desc/Solução)</label>
-                <input type="text" name="texto_busca" value="<?php echo $f_texto; ?>" placeholder="Pesquisar...">
+                <input type="text" name="texto_busca" value="<?php echo htmlspecialchars($f_texto); ?>" placeholder="Pesquisar...">
             </div>
 
             <div class="botoes-filtros">
@@ -157,8 +157,9 @@ $lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos
                         
                         <td>
                             <?php 
-                                echo htmlspecialchars($row['nome_tecnico'] ?? 'Pendente'); 
-                                if (isset($row['tecnico_ativo']) && $row['tecnico_ativo'] == 'Inativo') {
+                                echo htmlspecialchars($row['nome_tecnico'] ?? ' '); 
+                                // Verificação atualizada para status_tecnico
+                                if (isset($row['status_tecnico']) && $row['status_tecnico'] == 'Inativo') {
                                     echo '<span class="tag-inativo">(Inativo)</span>';
                                 }
                             ?>

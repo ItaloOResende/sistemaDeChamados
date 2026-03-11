@@ -15,8 +15,8 @@ if ($conexao->connect_error) {
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if ($id > 0) {
-    // 2. Lógica de Soft Delete: Altera o status para 'Inativo' em vez de deletar
-    $sql = "UPDATE tecnicos SET ativo = 'Inativo' WHERE id_tecnico = ?";
+    // 2. Lógica de Soft Delete: Altera o status_tecnico para 'Inativo' em vez de deletar
+    $sql = "UPDATE tecnicos SET status_tecnico = 'Inativo' WHERE id_tecnico = ?";
     $stmt = $conexao->prepare($sql);
     $stmt->bind_param("i", $id);
 

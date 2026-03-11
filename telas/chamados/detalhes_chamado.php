@@ -69,17 +69,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // ---------------------------------------------
-// 3. BUSCAR DADOS PARA O FORMULÁRIO
+// 3. BUSCAR DADOS PARA O FORMULÁRIO (ATUALIZADO)
 // ---------------------------------------------
-$sql = "SELECT c.*, cli.nome_empresa FROM chamados c 
+$sql = "SELECT c.*, 
+               cli.nome_empresa, 
+               cli.num_celular AS tel_cliente, 
+               cli.localizacao AS local_cliente,
+               tec.nome_tecnico,
+               tec.num_celular AS tel_tecnico,
+               tec.localizacao AS local_tecnico
+        FROM chamados c 
         JOIN clientes cli ON c.id_cliente = cli.id_cliente 
+        LEFT JOIN tecnicos tec ON c.id_tecnico_atribuido = tec.id_tecnico
         WHERE c.id_chamado = $id_chamado";
+
 $resultado = $conexao->query($sql);
 $chamado = $resultado->fetch_assoc();
 
-// Consultas para alimentar os selects
-$res_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE ativo = 'Ativo' ORDER BY nome_tecnico ASC");
-$res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_empresa = 'Ativo' ORDER BY nome_empresa ASC");
+// Consultas para alimentar os selects - Atualizadas com os novos nomes de coluna
+$res_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE status_tecnico = 'Ativo' ORDER BY nome_tecnico ASC");
+$res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC");
 ?>
 
 <!DOCTYPE html>
@@ -106,73 +115,85 @@ $res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes W
         <?php if(isset($mensagem)) echo $mensagem; ?>
         
         <form method="POST" action="">
-            <div class="grid-detalhes">
-                <div>
-                    <label>Cliente:</label>
-                    <select name="id_cliente" required>
-                        <?php while($c = $res_clientes->fetch_assoc()): ?>
-                            <option value="<?php echo $c['id_cliente']; ?>" <?php echo ($c['id_cliente'] == $chamado['id_cliente']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($c['nome_empresa']); ?>
-                            </option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
+<div class="grid-detalhes">
+    <div>
+        <label>Cliente:</label>
+        <select name="id_cliente" required>
+            <?php while($c = $res_clientes->fetch_assoc()): ?>
+                <option value="<?php echo $c['id_cliente']; ?>" <?php echo ($c['id_cliente'] == $chamado['id_cliente']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($c['nome_empresa']); ?>
+                </option>
+            <?php endwhile; ?>
+        </select>
+    </div>
+    <div>
+        <label>Celular:</label>
+        <div class="info-estatica"><?php echo $chamado['tel_cliente'] ?? '---'; ?></div>
+    </div>
+    <div>
+        <label>Localização:</label>
+        <div class="info-estatica"><?php echo $chamado['local_cliente'] ?? '---'; ?></div>
+    </div>
 
-                <div>
-                    <label>Origem:</label>
-                    <select name="origem">
-                        <option value="Telefone" <?php echo ($chamado['origem'] == 'Telefone') ? 'selected' : ''; ?>>Telefone</option>
-                        <option value="Email" <?php echo ($chamado['origem'] == 'Email') ? 'selected' : ''; ?>>E-mail</option>
-                        <option value="WhatsApp" <?php echo ($chamado['origem'] == 'WhatsApp') ? 'selected' : ''; ?>>WhatsApp</option>
-                        <option value="Portal" <?php echo ($chamado['origem'] == 'Portal') ? 'selected' : ''; ?>>Sistema</option>
-                    </select>
-                </div>
+    <div>
+        <label>Técnico:</label>
+        <select name="id_tecnico">
+            <option value="">-- Sem Técnico --</option>
+            <?php while($t = $res_tecnicos->fetch_assoc()): ?>
+                <option value="<?php echo $t['id_tecnico']; ?>" <?php echo ($t['id_tecnico'] == $chamado['id_tecnico_atribuido']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($t['nome_tecnico']); ?>
+                </option>
+            <?php endwhile; ?>
+        </select>
+    </div>
+    <div>
+        <label>Celular:</label>
+        <div class="info-estatica"><?php echo !empty($chamado['nome_tecnico']) ? ($chamado['tel_tecnico'] ?? '---') : '---'; ?></div>
+    </div>
+    <div>
+        <label>Localização:</label>
+        <div class="info-estatica"><?php echo !empty($chamado['nome_tecnico']) ? ($chamado['local_tecnico'] ?? '---') : '---'; ?></div>
+    </div>
 
-                <div>
-                    <label>Técnico Atribuído:</label>
-                    <select name="id_tecnico">
-                        <option value="">-- Sem Técnico --</option>
-                        <?php while($t = $res_tecnicos->fetch_assoc()): ?>
-                            <option value="<?php echo $t['id_tecnico']; ?>" <?php echo ($t['id_tecnico'] == $chamado['id_tecnico_atribuido']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($t['nome_tecnico']); ?>
-                            </option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
+    <div>
+        <label>Origem:</label>
+        <select name="origem">
+            <option value="Telefone" <?php echo ($chamado['origem'] == 'Telefone') ? 'selected' : ''; ?>>Telefone</option>
+            <option value="Email" <?php echo ($chamado['origem'] == 'Email') ? 'selected' : ''; ?>>E-mail</option>
+            <option value="WhatsApp" <?php echo ($chamado['origem'] == 'WhatsApp') ? 'selected' : ''; ?>>WhatsApp</option>
+            <option value="Portal" <?php echo ($chamado['origem'] == 'Portal') ? 'selected' : ''; ?>>Sistema</option>
+        </select>
+    </div>
+    <div>
+        <label>Prioridade:</label>
+        <select name="prioridade">
+            <option value="Baixa" <?php echo ($chamado['prioridade'] == 'Baixa') ? 'selected' : ''; ?>>Baixa</option>
+            <option value="Média" <?php echo ($chamado['prioridade'] == 'Média') ? 'selected' : ''; ?>>Média</option>
+            <option value="Alta" <?php echo ($chamado['prioridade'] == 'Alta') ? 'selected' : ''; ?>>Alta</option>
+            <option value="Urgente" <?php echo ($chamado['prioridade'] == 'Urgente') ? 'selected' : ''; ?>>Urgente</option>
+        </select>
+    </div>
+    <div>
+        <label>Status Atual:</label>
+        <select name="status">
+            <option value="Novo" <?php echo ($chamado['status'] == 'Novo') ? 'selected' : ''; ?>>Novo</option>
+            <option value="Em Atendimento" <?php echo ($chamado['status'] == 'Em Atendimento') ? 'selected' : ''; ?>>Em Atendimento</option>
+            <option value="Concluido" <?php echo ($chamado['status'] == 'Concluido') ? 'selected' : ''; ?>>Concluido</option>
+            <option value="Cancelado" <?php echo ($chamado['status'] == 'Cancelado') ? 'selected' : ''; ?>>Cancelado</option>
+        </select>
+    </div>
 
-                <div>
-                    <label>Prioridade:</label>
-                    <select name="prioridade">
-                        <option value="Baixa" <?php echo ($chamado['prioridade'] == 'Baixa') ? 'selected' : ''; ?>>Baixa</option>
-                        <option value="Média" <?php echo ($chamado['prioridade'] == 'Média') ? 'selected' : ''; ?>>Média</option>
-                        <option value="Alta" <?php echo ($chamado['prioridade'] == 'Alta') ? 'selected' : ''; ?>>Alta</option>
-                        <option value="Urgente" <?php echo ($chamado['prioridade'] == 'Urgente') ? 'selected' : ''; ?>>Urgente</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Status Atual:</label>
-                    <select name="status">
-                        <option value="Novo" <?php echo ($chamado['status'] == 'Novo') ? 'selected' : ''; ?>>Novo</option>
-                        <option value="Em Atendimento" <?php echo ($chamado['status'] == 'Em Atendimento') ? 'selected' : ''; ?>>Em Atendimento</option>
-                        <option value="Aguardando Cliente" <?php echo ($chamado['status'] == 'Aguardando Cliente') ? 'selected' : ''; ?>>Aguardando Cliente</option>
-                        <option value="Concluido" <?php echo ($chamado['status'] == 'Concluido') ? 'selected' : ''; ?>>Concluido</option>
-                        <option value="Cancelado" <?php echo ($chamado['status'] == 'Cancelado') ? 'selected' : ''; ?>>Cancelado</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Aberto em:</label>
-                    <div class="info-estatica"><?php echo date('d/m/Y H:i', strtotime($chamado['data_abertura'])); ?></div>
-                </div>
-
-                <div class="campo-cheio">
-                    <label>Problema Relatado:</label>
-                    <div style="background: #fff; padding: 10px; border: 1px solid #ccc; min-height: 60px; border-radius: 4px;">
-                        <?php echo nl2br(htmlspecialchars($chamado['descricao_solicitacao'])); ?>
-                    </div>
-                </div>
-            </div>
+    <div>
+        <label>Aberto em:</label>
+        <div class="info-estatica"><?php echo date('d/m/Y H:i', strtotime($chamado['data_abertura'])); ?></div>
+    </div>
+    <div class="campo-cheio" style="grid-column: span 2;">
+        <label>Problema Relatado:</label>
+        <div style="background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+            <?php echo nl2br(htmlspecialchars($chamado['descricao_solicitacao'])); ?>
+        </div>
+    </div>
+</div>
 
             <label for="solucao"><strong>Solução Técnica:</strong></label>
             <textarea id="solucao" name="solucao" placeholder="Descreva aqui o que foi feito para resolver o problema..." style="height: 100px; margin-top: 5px;"><?php echo htmlspecialchars($chamado['solucao'] ?? ''); ?></textarea>

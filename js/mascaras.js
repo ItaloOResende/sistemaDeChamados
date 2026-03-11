@@ -1,5 +1,4 @@
-// === LÓGICA DA MÁSCARA DE CELULAR ===
-const inputCelular = document.getElementById('num_celular');
+// === LÓGICA DA MÁSCARA DE CELULAR (CORRIGIDA) ===
 function mascaraCelular(valor) {
     if (!valor) return "";
     valor = valor.replace(/\D/g, "");
@@ -7,8 +6,13 @@ function mascaraCelular(valor) {
     valor = valor.replace(/(\d)(\d{4})$/, "$1-$2");
     return valor;
 }
+
+// Verifica se o elemento existe antes de aplicar a lógica
+const inputCelular = document.getElementById('num_celular');
 if (inputCelular) {
+    // Aplica a máscara ao carregar (se já houver valor)
     inputCelular.value = mascaraCelular(inputCelular.value);
+    
     inputCelular.addEventListener('input', function(e) {
         e.target.value = mascaraCelular(e.target.value);
     });
@@ -59,13 +63,12 @@ function excluirCliente(id, nome_empresa, botao) {
     }
 }
 
-// === VALIDAÇÃO DE FECHAMENTO DE CHAMADO (CORRIGIDA) ===
+// === VALIDAÇÃO DE FECHAMENTO DE CHAMADO ===
 document.addEventListener('DOMContentLoaded', function() {
     const campoStatus = document.querySelector('select[name="status"]');
     const campoSolucao = document.querySelector('textarea[name="solucao"]');
 
     if (campoStatus && campoSolucao) {
-        // Função para ligar/desligar o 'required'
         const validarNativo = () => {
             const status = campoStatus.value;
             if (status === 'Concluido') {
@@ -77,7 +80,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        // Roda ao carregar a página e sempre que mudar o status
         validarNativo();
         campoStatus.addEventListener('change', validarNativo);
     }

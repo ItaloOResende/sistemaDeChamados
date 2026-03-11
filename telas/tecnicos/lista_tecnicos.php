@@ -26,8 +26,8 @@ if (isset($_GET['status'])) {
     }
 }
 
-// 🚩 ALTERAÇÃO FEITA AQUI: Ordenando por id_tecnico
-$sql = "SELECT id_tecnico, nome_tecnico, email, num_celular FROM tecnicos WHERE ativo = 'Ativo' ORDER BY id_tecnico ASC";
+// 🚩 ALTERAÇÃO FEITA AQUI: Usando status_tecnico conforme o novo padrão do BD
+$sql = "SELECT id_tecnico, nome_tecnico, email, num_celular FROM tecnicos WHERE status_tecnico = 'Ativo' ORDER BY id_tecnico ASC";
 $resultado = $conexao->query($sql);
 
 $conexao->close();
@@ -68,15 +68,16 @@ $conexao->close();
                     <?php while($linha = $resultado->fetch_assoc()): ?>
                         <tr>
                             <td><?php echo $linha['id_tecnico']; ?></td>
-                            <td><?php echo $linha['nome_tecnico']; ?></td>
-                            <td><?php echo $linha['email']; ?></td>
-                            <td><?php echo $linha['num_celular']; ?></td>
+                            <td><?php echo htmlspecialchars($linha['nome_tecnico']); ?></td>
+                            <td><?php echo htmlspecialchars($linha['email']); ?></td>
+                            <td><?php echo htmlspecialchars($linha['num_celular']); ?></td>
                             <td>
                                 <a href="editar_tecnico.php?id=<?php echo $linha['id_tecnico']; ?>" class="btn-acao">Editar</a>
-<button type="button" class="btn-acao" style="background-color: #f44336; border: none; cursor: pointer;" 
-onclick="excluirTecnico(<?php echo $linha['id_tecnico']; ?>, '<?php echo addslashes($linha['nome_tecnico']); ?>', this)">
-    Excluir
-</button></td>
+                                <button type="button" class="btn-acao" style="background-color: #f44336; border: none; cursor: pointer;" 
+                                onclick="excluirTecnico(<?php echo $linha['id_tecnico']; ?>, '<?php echo addslashes($linha['nome_tecnico']); ?>', this)">
+                                    Excluir
+                                </button>
+                            </td>
                         </tr>
                     <?php endwhile; ?>
                 </tbody>

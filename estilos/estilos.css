@@ -1,10 +1,10 @@
-/* Estilo  do menu */
-/* Container do Menu Superior */
-/* Container do Menu Superior */
+/* ============================================================
+   1. ESTRUTURA E MENU (NAVBAR)
+   ============================================================ */
 .navbar-superior {
     width: 100%;
     height: 60px;
-    background-color: #1a1a1a; /* Fundo escuro */
+    background-color: #1a1a1a;
     color: white;
     position: fixed;
     top: 0;
@@ -18,7 +18,6 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
-/* TIRA O AZUL DOS LINKS DO MENU */
 .navbar-links {
     list-style: none;
     display: flex;
@@ -26,62 +25,47 @@
     padding: 0;
 }
 
-.navbar-links li {
-    margin-right: 25px;
-}
+.navbar-links li { margin-right: 25px; }
 
 .navbar-links a {
-    color: #ffffff; /* Branco para leitura fácil */
-    text-decoration: none; /* Tira o sublinhado */
+    color: #ffffff;
+    text-decoration: none;
     font-size: 14px;
     font-weight: bold;
     display: flex;
     align-items: center;
-    gap: 5px; /* Espaço entre o ícone/emoji e o texto */
+    gap: 5px;
 }
 
-.navbar-links a:hover {
-    color: #ffcc00; /* Cor de destaque ao passar o mouse */
-}
-
-/* RESOLVE O MENU EM CIMA DO CADASTRO */
-body {
-    margin: 0;
-    padding-top: 80px; /* Cria um espaço no topo para o formulário não sumir atrás do menu */
-    font-family: Arial, sans-serif;
-}
-/* 1. Estilos Gerais */
-/* estilos/estilos.css */
+.navbar-links a:hover { color: #ffcc00; }
 
 body {
     margin: 0;
     padding: 0;
-    /* 80px de espaço no topo para o conteúdo começar abaixo do menu */
     padding-top: 80px; 
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
 }
 
-/* Esta tag deve envolver todo o seu conteúdo (tabelas, formulários, h1) */
+/* CONTAINER MAIN - LARGO PARA TABELAS RESPIRAREM */
 main {
     display: block;
-    /* O primeiro valor (0) é o topo, o segundo (30px) é a direita/esquerda */
-    padding: 0 30px 30px 30px; 
-    box-sizing: border-box; /* Garante que o padding não aumente a largura total */
-}
-
-/* Garante que tabelas não fiquem grudadas se a tela for pequena */
-table {
-    width: 100%;
-    margin-top: 20px;
-    border-collapse: collapse;
+    width: 100% !important;   /* Ocupa a largura total disponível */
+    max-width: 100% !important; /* Remove qualquer trava de 1400px ou 1200px */
+    margin: 0;
+    padding: 20px;            /* Só um respiro nas bordas da tela */
+    box-sizing: border-box;
 }
 
 h1 { text-align: center; margin-bottom: 20px; }
 
-/* 2. Regra Padrão para Formulários (Técnicos, Clientes, etc.) */
-form { 
-    max-width: 400px; 
+/* ============================================================
+   2. REGRAS DE FORMULÁRIO (CORRIGIDO PARA NÃO TRAVAR TABELAS)
+   ============================================================ */
+
+/* Formulários comuns (Técnicos, Clientes) */
+form:not(.form-largo):not(.barra-filtros) { 
+    max-width: 450px; 
     margin: 0 auto; 
     padding: 20px; 
     border: 1px solid #ccc; 
@@ -89,37 +73,74 @@ form {
     background-color: #fff;
 }
 
-/* NOVA CLASSE: Use <form class="form-largo"> para Chamados e Detalhes */
+/* FORMULÁRIO DE DETALHES EXPANDIDO */
 .form-largo {
-    max-width: 900px !important; 
+    max-width: 100% !important;
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
 }
 
-label { 
-    display: block; 
-    margin-top: 10px; 
+/* 1. O PAI (GRID) - TRAVA DE COLUNA REAL */
+.grid-detalhes {
+    display: grid !important;
+    /* O segredo: minmax(0, 1fr) impede a coluna de crescer além do esperado */
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important; 
+    gap: 15px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #fff;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden; /* Garante que nada saia da moldura */
+}
+
+/* 2. O FILHO (INFO-ESTATICA) - CORTE SECO */
+.info-estatica { 
+    background: #eee; 
+    padding: 0 10px !important; 
+    border-radius: 4px; 
     font-weight: bold; 
+    border: 1px solid #ccc; 
+    height: 38px !important; 
+    line-height: 36px !important;
+    box-sizing: border-box !important; 
+
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important; /* IMPORTANTE: permite que a caixa seja menor que o texto */
+    
+    /* TRAVA O TEXTO LÁ DENTRO */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: clip !important; /* Corte seco sem os "..." */
+    
+    cursor: pointer;
 }
 
-/* 3. Inputs, Selects e Textareas Padronizados */
-input[type="text"], 
-input[type="email"], 
-input[type="tel"],
-input[type="number"],
-input[type="date"],
-select,
-textarea { 
+.campo-cheio { grid-column: span 3 !important; }
+
+label { display: block; margin-top: 10px; font-weight: bold; }
+
+/* ============================================================
+   3. INPUTS, SELECTS E TEXTAREAS
+   ============================================================ */
+input[type="text"], input[type="email"], input[type="tel"],
+input[type="number"], input[type="date"], select, textarea { 
     width: 100%; 
     padding: 8px; 
     margin-top: 5px; 
     margin-bottom: 10px; 
-    box-sizing: border-box; /* Essencial para não quebrar a largura */
+    box-sizing: border-box;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
-/* Altura fixa para o Textarea em formulários largos */
 .form-largo textarea {
-    height: 180px;
+    height: 120px;
     display: block;
     resize: vertical;
 }
@@ -134,13 +155,15 @@ button {
     font-weight: bold;
 }
 
-/* 4. Barra de Filtros (Horizontal Total) */
+/* ============================================================
+   4. BARRA DE FILTROS (TUDO MANTIDO)
+   ============================================================ */
 .barra-filtros {
-    max-width: 100% !important; /* Ocupa a largura da tela na listagem */
+    max-width: 100% !important;
     display: flex;
     flex-wrap: nowrap;
     gap: 12px;
-    align-items: flex-end; /* Alinha o fundo dos campos e botões */
+    align-items: flex-end;
     background: #f4f4f4;
     padding: 15px;
     border: 1px solid #ddd;
@@ -148,52 +171,40 @@ button {
     margin-bottom: 20px;
 }
 
-.barra-filtros .campo {
-    display: flex;
-    flex-direction: column; /* Label em cima, input embaixo */
-    gap: 4px;
-}
-
-/* Ajuste de larguras na barra de filtros para não encavalar */
+.barra-filtros .campo { display: flex; flex-direction: column; gap: 4px; }
 .campo-id { width: 60px; }
 .campo-cliente, .campo-tecnico { width: 160px; }
 .campo-data { width: 140px; }
 .campo-status { width: 130px; }
-.campo-busca { flex-grow: 1; } /* Estica para ocupar o espaço */
+.campo-busca { flex-grow: 1; }
 
 .barra-filtros label { font-size: 11px; margin-top: 0; }
 .barra-filtros input, .barra-filtros select { height: 36px; margin-bottom: 0; }
 
-/* 5. Estilos de Tabela */
+/* ============================================================
+   5. TABELAS (LARGURA TOTAL)
+   ============================================================ */
 table { 
-    width: 100%; 
+    width: 100% !important; 
     border-collapse: collapse; 
     margin-top: 20px; 
     background-color: #fff;
 }
-th, td { 
-    border: 1px solid #ddd; 
-    padding: 10px; 
-    text-align: left; 
-}
+th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
 th { background-color: #f2f2f2; color: #333; }
 
-/* Cores de Prioridade */
+/* CORES DE PRIORIDADE */
 .prioridade-Alta, .prioridade-Urgente { color: red; font-weight: bold; }
 .prioridade-Média { color: orange; font-weight: bold; }
 .prioridade-Baixa { color: green; }
 
-/* 6. Mensagens e Botões de Ação */
+/* MENSAGENS E BOTÕES DE AÇÃO */
 .msg-sucesso { color: green; background-color: #d4edda; padding: 10px; border: 1px solid #c3e6cb; border-radius: 4px; margin-bottom: 15px; }
 .msg-erro { color: red; background-color: #f8d7da; padding: 10px; border: 1px solid #f5c6cb; border-radius: 4px; margin-bottom: 15px; }
 
 .btn-acao { 
-    background-color: #007bff; 
-    color: white; 
-    padding: 5px 10px; 
-    text-decoration: none; 
-    border-radius: 3px;
-    font-size: 0.9em;
+    background-color: #007bff; color: white; padding: 5px 10px; 
+    text-decoration: none; border-radius: 3px; font-size: 0.9em;
 }
 .btn-acao.exclui { background-color: #dc3545; }
 .voltar { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #007bff; }

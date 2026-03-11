@@ -11,10 +11,12 @@ if ($conexao->connect_error) {
     die("Falha na conexão: " . $conexao->connect_error);
 }
 
-// BUSCA CLIENTES E TÉCNICOS
-$sql_clientes = "SELECT id_cliente, nome_empresa FROM clientes ORDER BY nome_empresa ASC";
+// BUSCA APENAS CLIENTES QUE ESTÃO COM STATUS_CLIENTE 'ATIVO'
+$sql_clientes = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
 $resultado_clientes = $conexao->query($sql_clientes);
-$sql_tecnicos = "SELECT id_tecnico, nome_tecnico FROM tecnicos ORDER BY nome_tecnico ASC";
+
+// BUSCA APENAS TÉCNICOS QUE ESTÃO COM STATUS_TECNICO 'ATIVO'
+$sql_tecnicos = "SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE status_tecnico = 'Ativo' ORDER BY nome_tecnico ASC";
 $resultado_tecnicos = $conexao->query($sql_tecnicos);
 
 $mensagem = "";
@@ -84,7 +86,7 @@ $conexao->close();
             </select>
 
             <label for="id_tecnico_atribuido">Técnico Atribuído (Opcional):</label>
-            <select id="id_tecnico_atribuido" name="id_tecnico_atribuido" required>
+            <select id="id_tecnico_atribuido" name="id_tecnico_atribuido">
                 <option value="">-- Nenhum Técnico Atribuído (Novo) --</option>
                 <?php while($tecnico = $resultado_tecnicos->fetch_assoc()): ?>
                     <option value="<?php echo $tecnico['id_tecnico']; ?>">
@@ -105,7 +107,7 @@ $conexao->close();
             <select id="origem" name="origem" required>
                 <option value="Sistema" selected>Sistema</option>
                 <option value="Telefone">Telefone</option>
-                <option value="Whatsaspp">Whatsaspp</option>
+                <option value="Whatsapp">Whatsapp</option>
                 <option value="Email">E-mail</option>
             </select>
             <label for="descricao_solicitacao">Descrição Detalhada do Problema:</label>
@@ -121,14 +123,21 @@ $conexao->close();
     
     <script src="../js/mascaras.js"></script>
 
-    <?php 
-    if ($cadastro_sucesso === true) {
-        echo "
-            <script>
-                mostrarSucessoERedirecionar('Chamado aberto com sucesso!', '../lista_chamados.php');
-            </script>
-        ";
-    }
-    ?>
+<?php 
+if ($cadastro_sucesso === true) {
+    echo "
+        <script>
+            window.onload = function() {
+                if (typeof mostrarSucessoERedirecionar === 'function') {
+                    mostrarSucessoERedirecionar('✅ Chamado aberto com sucesso!', 'lista_chamados.php');
+                } else {
+                    alert('✅ Chamado aberto com sucesso!');
+                    window.location.href = 'lista_chamados.php';
+                }
+            };
+        </script>
+    ";
+}
+?>
 </body>
 </html>
