@@ -56,7 +56,7 @@ $conexao->close();
 <head>
     <meta charset="UTF-8">
     <title>Lista de Clientes Cadastrados</title>
-    <link rel="stylesheet" href="../../estilos/estilos.css"> 
+    <link rel="stylesheet" href="/sistemaDeChamados/estilos/estilos.css?v=<?php echo time(); ?>">
 </head>
 <body>
 

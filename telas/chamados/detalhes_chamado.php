@@ -96,7 +96,7 @@ $res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes W
 <head>
     <meta charset="UTF-8">
     <title>Editar Chamado #<?php echo $id_chamado; ?></title>
-    <link rel="stylesheet" href="../../estilos/estilos.css">
+    <link rel="stylesheet" href="/sistemaDeChamados/estilos/estilos.css?v=<?php echo time(); ?>">
     <style>
         .grid-detalhes { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f4f4f4; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         .campo-cheio { grid-column: span 2; }

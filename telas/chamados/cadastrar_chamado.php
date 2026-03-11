@@ -59,7 +59,7 @@ $conexao->close();
 <head>
     <meta charset="UTF-8">
     <title>Abrir Novo Chamado</title>
-    <link rel="stylesheet" href="../../estilos/estilos.css">
+    <link rel="stylesheet" href="/sistemaDeChamados/estilos/estilos.css?v=<?php echo time(); ?>">
 </head>
 <body>
     <?php 

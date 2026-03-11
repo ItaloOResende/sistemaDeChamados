@@ -55,7 +55,7 @@ $lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos
 <head>
     <meta charset="UTF-8">
     <title>Painel de Chamados - Black TI</title>
-    <link rel="stylesheet" href="../../estilos/estilos.css">
+    <link rel="stylesheet" href="/sistemaDeChamados/estilos/estilos.css?v=<?php echo time(); ?>">
     <style>
         .barra-filtros { display: flex; flex-wrap: wrap; gap: 15px; background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 25px; align-items: flex-end; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .barra-filtros .campo { display: flex; flex-direction: column; flex: 1; min-width: 130px; }
