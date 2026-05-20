@@ -1,3 +1,3 @@
 <?php
-header("Location: seu_arquivo_inicial.php");
+header("Location: telas/chamados/lista_chamados.php");
 exit;
