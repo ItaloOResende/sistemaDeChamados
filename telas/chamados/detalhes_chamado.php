@@ -4,17 +4,15 @@ date_default_timezone_set('America/Sao_Paulo');
 // ---------------------------------------------
 // 1. CONFIGURAÇÃO E CONEXÃO
 // ---------------------------------------------
-$servidor = "localhost";
-$usuario = "root";
-$senha = "";
-$banco = "sistemadechamados"; 
+// Define o fuso horário para o horário de Brasília
+date_default_timezone_set('America/Sao_Paulo');
 
-$conexao = new mysqli($servidor, $usuario, $senha, $banco);
-if ($conexao->connect_error) { die("Erro: " . $conexao->connect_error); }
+// 1. CONFIGURAÇÃO E CONEXÃO
+include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
 
 $id_chamado = $_GET['id'] ?? null;
-$cadastro_sucesso = false; 
+$cadastro_sucesso = false;
 
 if (!$id_chamado) { header("Location: lista_chamados.php"); exit; }
 

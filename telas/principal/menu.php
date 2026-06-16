@@ -1,6 +1,6 @@
 <nav class="navbar-superior">
     <div class="navbar-logo" style="margin-right: 40px; font-weight: bold;">
-        Black TI
+        Empresa
     </div>
     <ul class="navbar-links">
         <li><a href="../chamados/lista_chamados.php">📋 Chamados</a></li>

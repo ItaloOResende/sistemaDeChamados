@@ -2,20 +2,11 @@
 // ---------------------------------------------
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
 // ---------------------------------------------
-$servidor = "localhost";
-$usuario = "root";
-$senha = "";
-$banco = "sistemadechamados"; 
-
-$conexao = new mysqli($servidor, $usuario, $senha, $banco);
-
-if ($conexao->connect_error) {
-    die("Falha na conexão: " . $conexao->connect_error);
-}
+include_once(__DIR__ . '/../../tabelas/conexao.php'); 
+$conexao->set_charset("utf8mb4");
 
 $mensagem = "";
-$cliente = null; // Variável para armazenar os dados do cliente
-$id_cliente = 0; // ID do cliente em foco
+$cadastro_sucesso = false;
 
 // ---------------------------------------------
 // 2. LÓGICA DE ATUALIZAÇÃO (POST)

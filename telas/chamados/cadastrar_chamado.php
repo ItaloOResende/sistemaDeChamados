@@ -1,15 +1,7 @@
 <?php
-// ... CÓDIGO PHP DE CONEXÃO, BUSCA E PROCESSAMENTO (INALTERADO) ...
-$servidor = "localhost";
-$usuario = "root";
-$senha = "";
-$banco = "sistemadechamados"; 
-
-$conexao = new mysqli($servidor, $usuario, $senha, $banco);
-
-if ($conexao->connect_error) {
-    die("Falha na conexão: " . $conexao->connect_error);
-}
+// ... CÓDIGO PHP DE CONEXÃO, BUSCA E PROCESSAMENTO (ALTERADO PARA PRODUÇÃO) ...
+include_once(__DIR__ . '/../../tabelas/conexao.php'); 
+$conexao->set_charset("utf8mb4");
 
 // BUSCA APENAS CLIENTES QUE ESTÃO COM STATUS_CLIENTE 'ATIVO'
 $sql_clientes = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
@@ -20,7 +12,7 @@ $sql_tecnicos = "SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE status_tecn
 $resultado_tecnicos = $conexao->query($sql_tecnicos);
 
 $mensagem = "";
-$cadastro_sucesso = false; 
+$cadastro_sucesso = false;
 
 // ... LÓGICA DE INSERT (INALTERADA) ...
 

@@ -2,16 +2,11 @@
 // ---------------------------------------------
 // 1. CONFIGURAÇÕES E CONEXÃO
 // ---------------------------------------------
-$servidor = "localhost";
-$usuario = "root";
-$senha = ""; 
-$banco = "sistemadechamados"; 
+include_once(__DIR__ . '/../../tabelas/conexao.php'); 
+$conexao->set_charset("utf8mb4");
 
-$conexao = new mysqli($servidor, $usuario, $senha, $banco);
-
-if ($conexao->connect_error) {
-    die("Falha na conexão");
-}
+$mensagem = "";
+$cadastro_sucesso = false;
 
 // ---------------------------------------------
 // 2. PROCESSAMENTO DO ID

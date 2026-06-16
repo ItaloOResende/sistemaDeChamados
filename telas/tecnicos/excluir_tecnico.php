@@ -1,15 +1,10 @@
 <?php
 // Configurações de Conexão
-$servidor = "localhost";
-$usuario = "root";
-$senha = "";
-$banco = "sistemadechamados";
+include_once(__DIR__ . '/../../tabelas/conexao.php'); 
+$conexao->set_charset("utf8mb4");
 
-$conexao = new mysqli($servidor, $usuario, $senha, $banco);
-
-if ($conexao->connect_error) {
-    die("Erro ao conectar");
-}
+$mensagem = "";
+$cadastro_sucesso = false;
 
 // 1. Pega o ID via GET
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
