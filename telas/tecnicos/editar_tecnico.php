@@ -69,7 +69,7 @@ if (!$tecnico && $id_tecnico == 0) {
 <head>
     <meta charset="UTF-8">
     <title>Editar Técnico</title>
-    <link rel="stylesheet" href="/sistemaDeChamados/estilos/estilos.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../../estilos/estilos.css?v=<?php echo time(); ?>">
 </head>
 <body>
 

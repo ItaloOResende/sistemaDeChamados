@@ -96,7 +96,7 @@ if (!$cliente && empty($mensagem)) {
 <head>
     <meta charset="UTF-8">
     <title>Editar Cliente</title>
-    <link rel="stylesheet" href="/sistemaDeChamados/estilos/estilos.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../../estilos/estilos.css?v=<?php echo time(); ?>">
     <style>
         textarea { resize: vertical; min-height: 100px; }
     </style>

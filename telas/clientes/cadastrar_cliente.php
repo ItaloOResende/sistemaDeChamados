@@ -65,7 +65,7 @@ $conexao->close();
 <head>
     <meta charset="UTF-8">
     <title>Cadastro de Clientes</title>
-    <link rel="stylesheet" href="/sistemaDeChamados/estilos/estilos.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../../estilos/estilos.css?v=<?php echo time(); ?>">
     <style>
         /* Manter o estilo, mesmo que o campo tenha mudado para input */
         textarea { resize: vertical; min-height: 100px; } 
