@@ -1,4 +1,5 @@
 <?php
+session_start();
 // ---------------------------------------------
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
 // ---------------------------------------------
@@ -50,7 +51,7 @@ $conexao->close();
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Lista de Clientes Cadastrados</title>
+    <title>Lista de Empresas Cadastradas</title>
     <link rel="stylesheet" href="../../estilos/estilos.css?v=<?php echo time(); ?>">
 </head>
 <body>
@@ -58,7 +59,7 @@ $conexao->close();
     <?php include_once('../principal/menu.php'); ?>
     
     <header>
-        <h1>👥 Clientes Cadastrados</h1>
+        <h1>🏭 Empresas Cadastradas</h1>
     </header>
     <hr>
 

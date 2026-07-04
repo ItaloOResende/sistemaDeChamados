@@ -1,4 +1,5 @@
 <?php
+session_start();
 // ---------------------------------------------
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
 // ---------------------------------------------
@@ -95,7 +96,7 @@ if (!$cliente && empty($mensagem)) {
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Editar Cliente</title>
+    <title>Editar Empresa</title>
     <link rel="stylesheet" href="../../estilos/estilos.css?v=<?php echo time(); ?>">
     <style>
         textarea { resize: vertical; min-height: 100px; }
@@ -106,7 +107,7 @@ if (!$cliente && empty($mensagem)) {
     <?php include_once('../principal/menu.php'); ?>
     
     <header>
-        <h1>✏️ Editar Cliente</h1>
+        <h1>🏭 Editar Empresa</h1>
     </header>
     <hr>
 

@@ -1,4 +1,5 @@
 <?php
+session_start();
 // Define o fuso horário para o horário de Brasília
 date_default_timezone_set('America/Sao_Paulo');
 // ---------------------------------------------

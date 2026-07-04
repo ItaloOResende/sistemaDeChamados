@@ -1,4 +1,5 @@
 <?php
+session_start();
 // 1. CONEXÃO E LÓGICA DE FILTROS
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 

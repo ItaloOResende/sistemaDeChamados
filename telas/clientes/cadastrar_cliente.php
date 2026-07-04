@@ -1,4 +1,5 @@
 <?php
+session_start();
 // ---------------------------------------------
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
 // ---------------------------------------------
@@ -64,7 +65,7 @@ $conexao->close();
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Cadastro de Clientes</title>
+    <title>Cadastro de Empresas</title>
     <link rel="stylesheet" href="../../estilos/estilos.css?v=<?php echo time(); ?>">
     <style>
         /* Manter o estilo, mesmo que o campo tenha mudado para input */
@@ -76,7 +77,7 @@ $conexao->close();
     <?php include_once('../principal/menu.php'); ?>
     
     <header>
-        <h1>Cadastro de Clientes</h1>
+        <h1>🏭 Cadastro de Empresas</h1>
     </header>
     <hr>
 

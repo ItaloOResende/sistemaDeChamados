@@ -1,4 +1,5 @@
 <?php
+session_start();
 // ... CÓDIGO PHP DE CONEXÃO E CONSULTA ...
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
@@ -39,7 +40,7 @@ $conexao->close();
     <?php include_once('../principal/menu.php'); ?>
     
     <header>
-        <h1>👥 Técnicos Cadastrados</h1>
+        <h1>🛠️ Técnicos Cadastrados</h1>
     </header>
     <hr>
 

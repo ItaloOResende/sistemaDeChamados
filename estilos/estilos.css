@@ -39,6 +39,7 @@
 
 .navbar-links a:hover { color: #ffcc00; }
 
+/* Estilo padrão para o sistema logado */
 body {
     margin: 0;
     padding: 0;
@@ -64,7 +65,7 @@ h1 { text-align: center; margin-bottom: 20px; }
    ============================================================ */
 
 /* Formulários comuns (Técnicos, Clientes) */
-form:not(.form-largo):not(.barra-filtros) { 
+form:not(.form-largo):not(.barra-filtros):not(.form-login) { 
     max-width: 450px; 
     margin: 0 auto; 
     padding: 20px; 
@@ -129,7 +130,7 @@ label { display: block; margin-top: 10px; font-weight: bold; }
    3. INPUTS, SELECTS E TEXTAREAS
    ============================================================ */
 input[type="text"], input[type="email"], input[type="tel"],
-input[type="number"], input[type="date"], select, textarea { 
+input[type="number"], input[type="date"], input[type="password"], select, textarea { 
     width: 100%; 
     padding: 8px; 
     margin-top: 5px; 
@@ -208,3 +209,70 @@ th { background-color: #f2f2f2; color: #333; }
 }
 .btn-acao.exclui { background-color: #dc3545; }
 .voltar { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #007bff; }
+
+/* ============================================================
+   6. TELA DE LOGIN (ESTILOS EXCLUSIVOS - FORÇANDO CENTRO)
+   ============================================================ */
+body.page-login {
+    display: block !important; /* Reseta o flex do body para não brigar com a navbar */
+    padding-top: 0 !important;
+    margin: 0;
+    height: 100vh;
+    background-color: #f4f4f4;
+}
+
+/* Criamos um container que ocupa a tela toda por baixo da barra */
+.wrapper-login {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: calc(100vh - 60px); /* Desconta a altura da navbar */
+    margin-top: 60px; /* Joga para baixo da navbar */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.login-container { 
+    background: #fff; 
+    padding: 30px; 
+    border-radius: 8px; 
+    box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+    width: 350px; 
+}
+
+.login-container h2 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.form-group { 
+    margin-bottom: 15px; 
+}
+
+.form-group label { 
+    display: block; 
+    margin-bottom: 5px; 
+}
+
+.btn-login { 
+    width: 100%; 
+    padding: 10px; 
+    background: #28a745; 
+    color: white; 
+    border: none; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-weight: bold;
+}
+
+.btn-login:hover {
+    background-color: #218838;
+}
+
+.error-msg { 
+    color: red; 
+    margin-bottom: 15px; 
+    font-size: 14px; 
+    text-align: center;
+}

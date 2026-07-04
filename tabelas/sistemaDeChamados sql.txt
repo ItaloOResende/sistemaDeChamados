@@ -2,6 +2,23 @@ create database sistemadechamados;
 
 use sistemadechamados;
 
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL, -- Guardar sempre como hash (ex: bcrypt)
+    perfil ENUM('admin', 'normal') NOT NULL DEFAULT 'normal',
+    id_cliente INT(11) NOT NULL, -- Mudou para bater com o tipo da tabela clientes
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_usuario_cliente 
+        FOREIGN KEY (id_cliente) 
+        REFERENCES clientes (id_cliente) 
+        ON DELETE RESTRICT 
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
  CREATE TABLE `clientes` (
   `id_cliente` int(11) NOT NULL AUTO_INCREMENT,
   `nome_empresa` varchar(255) NOT NULL,
@@ -41,3 +58,26 @@ CREATE TABLE `chamados` (
   CONSTRAINT `chamados_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`),
   CONSTRAINT `chamados_ibfk_2` FOREIGN KEY (`id_tecnico_atribuido`) REFERENCES `tecnicos` (`id_tecnico`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+------------------------------------------------------------
+------------------------------------------------------------
+------------------------------------------------------------
+--Para funcionar a primeira vez (mude os valores para o contato admin)
+INSERT INTO clientes (
+    id_cliente, 
+    nome_empresa, 
+    localizacao, 
+    contato_principal, 
+    num_celular, 
+    email_contato, 
+    status_cliente
+) VALUES (
+    1, 
+    'Empresa Teste', 
+    'Localizacao Teste', 
+    'Contato Teste', 
+    '00000000000', 
+    'teste@teste.com.br', 
+    'Ativo'
+);
+

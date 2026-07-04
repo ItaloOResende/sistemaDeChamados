@@ -1,4 +1,5 @@
 <?php
+session_start();
 // ---------------------------------------------
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
 // ---------------------------------------------
@@ -76,7 +77,7 @@ if (!$tecnico && $id_tecnico == 0) {
     <?php include_once('../principal/menu.php'); ?>
     
     <header>
-        <h1>✏️ Editar Técnico</h1>
+        <h1>🛠️ Editar Técnico</h1>
     </header>
     <hr>
 

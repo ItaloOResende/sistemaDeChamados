@@ -1,4 +1,5 @@
 <?php
+session_start();
 // ... CÓDIGO PHP DE CONEXÃO, BUSCA E PROCESSAMENTO (ALTERADO PARA PRODUÇÃO) ...
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
@@ -58,7 +59,7 @@ $conexao->close();
         include_once('../principal/menu.php'); 
     ?>
     <header>
-        <h1>📞 Abrir Novo Chamado</h1>
+        <h1>📋 Abrir Novo Chamado</h1>
     </header>
     <hr>
     <main>
@@ -107,12 +108,10 @@ $conexao->close();
             <button type="submit">Abrir Chamado</button>
 
         </form>
-        
-        <div class="voltar">
-             <a href="lista_chamados.php">← Voltar para a Lista de Chamados</a>
-        </div>
     </main>
-    
+    <div class="voltar">
+        <a href="lista_chamados.php">← Voltar para a Lista de Chamados</a>
+    </div>
     <script src="../js/mascaras.js"></script>
 
 <?php 
