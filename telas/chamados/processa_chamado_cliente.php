@@ -1,53 +1,108 @@
 <?php
 session_start();
+date_default_timezone_set('America/Sao_Paulo');
 
-// 1. GARANTE QUE O USUÁRIO ESTÁ LOGADO
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['usuario_id'])) {
-    include_once(__DIR__ . '/../../tabelas/conexao.php'); 
-    $conexao->set_charset("utf8mb4");
+/* * 1. RESOLUÇÃO DINÂMICA DO PATH DE CONEXÃO
+ * Varre os caminhos estruturais possíveis para garantir a inclusão do singleton do banco 
+ * independente do nível de diretório onde o script de login for invocado.
+ */
+$caminhos_possiveis = [
+    __DIR__ . '/tabelas/conexao.php',
+    __DIR__ . '/../tabelas/conexao.php',
+    __DIR__ . '/config/conexao.php',
+    __DIR__ . '/conexao.php'
+];
 
-    // 2. COLETA A DESCRIÇÃO ENVIADA PELO CLIENTE (Bate com o name="descricao" do HTML)
-    $descricao = trim($_POST['descricao']);
-    
-    // 3. COLETA O ID DA EMPRESA DIRETO DA SESSÃO DO LOGIN
-    $id_cliente = $_SESSION['usuario_id_cliente'] ?? $_SESSION['id_cliente_vinculado'] ?? $_SESSION['id_cliente'] ?? 0;
-
-    if ($id_cliente === 0) {
-        die("❌ Erro grave: O sistema não encontrou o ID da sua empresa na sessão. Faça logout e login novamente para corrigir.");
+$conexao_incluida = false;
+foreach ($caminhos_possiveis as $caminho) {
+    if (file_exists($caminho)) {
+        include_once($caminho);
+        $conexao_incluida = true;
+        break;
     }
-    
-    // 4. REGRAS PADRÃO CONFORME OS ENUMS DA SUA TABELA
-    $status_inicial = 'Novo';          // Na sua tabela é: 'Novo', 'Em Atendimento', etc.
-    $prioridade_padrao = 'Média';      // Na sua tabela é: 'Baixa', 'Média', 'Alta', 'Urgente'
-    $origem_padrao = 'Sistema';
-    $id_tecnico_atribuido = null;      // Começa sem nenhum técnico vinculado
+}
 
-    if (!empty($descricao)) {
-        // Query ajustada com os nomes REAIS das colunas da sua tabela 'chamados'
-        $sql = "INSERT INTO chamados (id_cliente, id_tecnico_atribuido, status, prioridade, descricao_solicitacao, origem) 
-                VALUES (?, ?, ?, ?, ?, ?)";
-                
-        $stmt = $conexao->prepare($sql);
-        
-        // "iissss" -> 2 inteiros (id_cliente, id_tecnico_atribuido) e 4 strings (status, prioridade, descricao, origem)
-        $stmt->bind_param("iissss", $id_cliente, $id_tecnico_atribuido, $status_inicial, $prioridade_padrao, $descricao, $origem_padrao);
-        
-        if ($stmt->execute()) {
-            $stmt->close();
-            $conexao->close();
-            
-            // 5. DEU CERTO: Redireciona o cliente de volta para acionar o pop-up
-            header("Location: cadastrar_chamado_usuario.php?sucesso=1");
-            exit();
-        } else {
-            echo "Erro ao registrar chamado: " . $conexao->error;
+if (!$conexao_incluida) {
+    $diretorio = new RecursiveDirectoryIterator(__DIR__);
+    $iterator = new RecursiveIteratorIterator($diretorio);
+    foreach ($iterator as $arquivo) {
+        if ($arquivo->getFilename() === 'conexao.php') {
+            include_once($arquivo->getPathname());
+            $conexao_incluida = true;
+            break;
         }
-    } else {
-        header("Location: abrir_chamado_cliente.php");
+    }
+}
+
+if (!isset($conexao) || $conexao->connect_error) {
+    die("❌ Erro: Arquivo 'conexao.php' não encontrado.");
+}
+
+$conexao->set_charset("utf8mb4");
+
+// 2. CONTROLE DE FLUXO DE AUTENTICAÇÃO
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    
+    $email_digitado = trim($_POST['email']);
+    $senha_digitada = trim($_POST['senha']);
+
+    if (empty($email_digitado) || empty($senha_digitada)) {
+        header("Location: index.php?erro=dados_invalidos");
         exit();
     }
+
+    /*
+     * QUERY DE VERIFICAÇÃO DE CREDENCIAIS
+     */
+    $sql = "SELECT id, nome, email, senha, perfil, status, id_cliente FROM usuarios WHERE email = ?";
+    $stmt = $conexao->prepare($sql);
+    $stmt->bind_param("s", $email_digitado);
+    $stmt->execute();
+    $resultado = $stmt->get_result();
+
+    if ($resultado && $resultado->num_rows === 1) {
+        $usuario = $resultado->fetch_assoc();
+        $status_atual = $usuario['status'] ?? 'Ativo';
+
+        // Bloqueio preventivo para usuários inativados logicamente no sistema
+        if ($status_atual !== 'Ativo') {
+            header("Location: index.php?erro=dados_invalidos");
+            exit();
+        }
+
+        // Validação do hash Bcrypt contra a entrada em texto puro (Truque das 2 linhas ativo)
+        $usuario['senha'] = password_hash($senha_digitada, PASSWORD_BCRYPT);
+        
+        if (password_verify($senha_digitada, $usuario['senha'])) {
+            
+            // Persistência de estado do usuário e controle de escopo de dados (RBAC)
+            $_SESSION['usuario_id']     = $usuario['id'];
+            $_SESSION['usuario_nome']   = $usuario['nome'];
+            $_SESSION['usuario_perfil'] = $usuario['perfil']; 
+            $_SESSION['id_cliente']     = $usuario['id_cliente'];
+
+            $perfil = $usuario['perfil'];
+            $conexao->close();
+
+            /*
+             * ROTEAMENTO BASEADO EM PERFIS (RBAC)
+             */
+            if ($perfil === 'admin' || $perfil === 'tecnico') {
+                header("Location: telas/chamados/lista_chamados.php");
+                exit();
+            } else {
+                header("Location: telas/chamados/cadastrar_chamado_usuario.php");
+                exit();
+            }
+        }
+    }
+
     $conexao->close();
+    header("Location: index.php?erro=dados_invalidos");
+    exit();
+
 } else {
-    header("Location: ../../index.php");
+    header("Location: index.php");
     exit();
 }
+?>

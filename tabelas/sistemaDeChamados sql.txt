@@ -4,59 +4,52 @@ use sistemadechamados;
 
 CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nome` varchar(100) NOT NULL,
+  `nome` varchar(255) NOT NULL,
   `email` varchar(100) NOT NULL,
   `senha` varchar(255) NOT NULL,
   `num_celular` varchar(20) DEFAULT NULL,
-  `perfil` enum('admin','normal') NOT NULL DEFAULT 'normal',
-  `id_cliente` int(11) NOT NULL,
-  `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
-  `atualizado_em` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `perfil` varchar(20) NOT NULL,
+  `id_cliente` int(11) DEFAULT NULL,
+  `status` varchar(20) DEFAULT 'Ativo',
+  `criado_em` datetime DEFAULT current_timestamp(),
+  `atualizado_em` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
-  KEY `fk_usuario_cliente` (`id_cliente`),
-  CONSTRAINT `fk_usuario_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`) ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  KEY `id_cliente` (`id_cliente`),
+  CONSTRAINT `usuarios_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 
- CREATE TABLE `clientes` (
+CREATE TABLE `clientes` (
   `id_cliente` int(11) NOT NULL AUTO_INCREMENT,
   `nome_empresa` varchar(255) NOT NULL,
-  `localizacao` text DEFAULT NULL,
+  `localizacao` varchar(255) DEFAULT NULL,
   `contato_principal` varchar(100) DEFAULT NULL,
   `num_celular` varchar(20) DEFAULT NULL,
-  `email_contato` varchar(100) NOT NULL,
-  `status_cliente` enum('Ativo','Inativo') DEFAULT 'Ativo',
+  `email_contato` varchar(100) DEFAULT NULL,
+  `status_cliente` varchar(20) DEFAULT 'Ativo',
   PRIMARY KEY (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-
-CREATE TABLE `tecnicos` (
-  `id_tecnico` int(11) NOT NULL AUTO_INCREMENT,
-  `nome_tecnico` varchar(100) NOT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `num_celular` varchar(20) DEFAULT NULL,
-  `status_tecnico` enum('Ativo','Inativo') DEFAULT 'Ativo',
-  `localizacao` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id_tecnico`),
-  UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 
 CREATE TABLE `chamados` (
   `id_chamado` int(11) NOT NULL AUTO_INCREMENT,
   `id_cliente` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
   `id_tecnico_atribuido` int(11) DEFAULT NULL,
-  `data_abertura` datetime NOT NULL DEFAULT current_timestamp(),
+  `data_abertura` datetime DEFAULT current_timestamp(),
   `data_fechamento` datetime DEFAULT NULL,
-  `status` enum('Novo','Em Atendimento','Aguardando Cliente','Conclu?do') NOT NULL DEFAULT 'Novo',
-  `prioridade` enum('Baixa','M?dia','Alta','Urgente') NOT NULL DEFAULT 'M?dia',
+  `status` varchar(20) DEFAULT 'Novo',
+  `prioridade` varchar(20) DEFAULT 'Media',
   `descricao_solicitacao` text NOT NULL,
-  `origem` varchar(50) DEFAULT NULL,
   `solucao` text DEFAULT NULL,
+  `origem` varchar(20) DEFAULT 'Portal',
   PRIMARY KEY (`id_chamado`),
   KEY `id_cliente` (`id_cliente`),
+  KEY `id_usuario` (`id_usuario`),
   KEY `id_tecnico_atribuido` (`id_tecnico_atribuido`),
   CONSTRAINT `chamados_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`),
-  CONSTRAINT `chamados_ibfk_2` FOREIGN KEY (`id_tecnico_atribuido`) REFERENCES `tecnicos` (`id_tecnico`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  CONSTRAINT `chamados_ibfk_2` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`),
+  CONSTRAINT `chamados_ibfk_3` FOREIGN KEY (`id_tecnico_atribuido`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 
 ------------------------------------------------------------
 ------------------------------------------------------------
