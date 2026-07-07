@@ -85,7 +85,6 @@ $conexao->close();
         <?php echo $mensagem; // Exibe a mensagem de erro ou duplicidade ?>
 
         <form method="POST" action="">
-            <h2>Nova Empresa Cliente</h2>
             
             <label for="nome_empresa">Nome da Empresa:</label>
             <input type="text" id="nome_empresa" name="nome_empresa" maxlength="255" required>

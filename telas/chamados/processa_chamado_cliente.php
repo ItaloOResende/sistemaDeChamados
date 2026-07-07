@@ -10,7 +10,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['usuario_id'])) {
     $descricao = trim($_POST['descricao']);
     
     // 3. COLETA O ID DA EMPRESA DIRETO DA SESSÃO DO LOGIN
-    $id_cliente = (int)$_SESSION['id_cliente']; 
+    $id_cliente = $_SESSION['usuario_id_cliente'] ?? $_SESSION['id_cliente_vinculado'] ?? $_SESSION['id_cliente'] ?? 0;
+
+    if ($id_cliente === 0) {
+        die("❌ Erro grave: O sistema não encontrou o ID da sua empresa na sessão. Faça logout e login novamente para corrigir.");
+    }
     
     // 4. REGRAS PADRÃO CONFORME OS ENUMS DA SUA TABELA
     $status_inicial = 'Novo';          // Na sua tabela é: 'Novo', 'Em Atendimento', etc.

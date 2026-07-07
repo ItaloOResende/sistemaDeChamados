@@ -2,22 +2,21 @@ create database sistemadechamados;
 
 use sistemadechamados;
 
-CREATE TABLE usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    senha VARCHAR(255) NOT NULL, -- Guardar sempre como hash (ex: bcrypt)
-    perfil ENUM('admin', 'normal') NOT NULL DEFAULT 'normal',
-    id_cliente INT(11) NOT NULL, -- Mudou para bater com o tipo da tabela clientes
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_usuario_cliente 
-        FOREIGN KEY (id_cliente) 
-        REFERENCES clientes (id_cliente) 
-        ON DELETE RESTRICT 
-        ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE `usuarios` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nome` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `senha` varchar(255) NOT NULL,
+  `num_celular` varchar(20) DEFAULT NULL,
+  `perfil` enum('admin','normal') NOT NULL DEFAULT 'normal',
+  `id_cliente` int(11) NOT NULL,
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp(),
+  `atualizado_em` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`),
+  KEY `fk_usuario_cliente` (`id_cliente`),
+  CONSTRAINT `fk_usuario_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 
  CREATE TABLE `clientes` (
   `id_cliente` int(11) NOT NULL AUTO_INCREMENT,
@@ -81,3 +80,25 @@ INSERT INTO clientes (
     'Ativo'
 );
 
+INSERT INTO usuarios (
+    id, 
+    nome, 
+    email, 
+    senha, 
+    num_celular, 
+    perfil, 
+    id_cliente, 
+    localizacao, 
+    status
+) VALUES (
+    1, 
+    'Administrador Master', 
+    'admin@teste.com.br', 
+    -- 🚩 Essa é a senha 'admin123' já criptografada em Bcrypt para o PHP reconhecer:
+    '$2y$10$e0MYzWvV26ybyZf3U0v8mO8v7wP7Ymbe9X5A3ZREB0H8mS7yG0X8a', 
+    '(31) 99999-9999', 
+    'admin', 
+    1, -- Vinculado à Empresa Teste (ID 1) que você criou
+    'Escritório Central', 
+    'Ativo'
+);

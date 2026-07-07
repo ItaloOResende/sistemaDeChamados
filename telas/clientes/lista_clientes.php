@@ -74,7 +74,7 @@ $conexao->close();
             <div class="msg-alerta">Nenhum cliente ativo encontrado.</div>
         <?php else: ?>
             
-            <p>Total de clientes ativos: <strong><?php echo $resultado->num_rows; ?></strong></p>
+            <p>Total de empreas ativas: <strong><?php echo $resultado->num_rows; ?></strong></p>
 
             <table>
                 <thead>

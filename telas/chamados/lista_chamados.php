@@ -17,11 +17,11 @@ $f_prioridade = $_GET['prioridade'] ?? '';
 $ordenar_por = $_GET['ordem'] ?? 'c.id_chamado'; // Ordenação padrão por ID
 $direcao     = $_GET['dir'] ?? 'DESC';
 
-// SQL Base com Joins - Atualizado para status_tecnico
-$sql = "SELECT c.*, cli.nome_empresa, t.nome_tecnico, t.status_tecnico
+// 🚀 SQL Base com Joins Atualizado para apontar para a tabela unificada 'usuarios' (u)
+$sql = "SELECT c.*, cli.nome_empresa, u.nome AS nome_tecnico, u.status AS status_tecnico
         FROM chamados c
         LEFT JOIN clientes cli ON c.id_cliente = cli.id_cliente
-        LEFT JOIN tecnicos t ON c.id_tecnico_atribuido = t.id_tecnico
+        LEFT JOIN usuarios u ON c.id_tecnico_atribuido = u.id
         WHERE 1=1";
 
 $params = []; $types = "";
@@ -42,9 +42,9 @@ if (!empty($params)) { $stmt->bind_param($types, ...$params); }
 $stmt->execute();
 $resultado = $stmt->get_result();
 
-// Filtros para os combos - Atualizados para status_cliente e status_tecnico
+// Filtros para os combos - Clientes ativos e 🚀 Técnicos puxados da tabela 'usuarios'
 $lista_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC");
-$lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE status_tecnico = 'Ativo' ORDER BY nome_tecnico ASC");
+$lista_tecnicos = $conexao->query("SELECT id, nome AS nome_tecnico FROM usuarios WHERE (perfil = 'tecnico' OR perfil = 'admin') AND status = 'Ativo' ORDER BY nome ASC");
 ?>
 
 <!DOCTYPE html>
@@ -101,7 +101,7 @@ $lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos
                 <select name="id_tecnico">
                     <option value="">Todos (Ativos)</option>
                     <?php while($t = $lista_tecnicos->fetch_assoc()): ?>
-                        <option value="<?php echo $t['id_tecnico']; ?>" <?php echo $f_id_tecnico == $t['id_tecnico'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($t['nome_tecnico']); ?></option>
+                        <option value="<?php echo $t['id_tecnico'] ?? $t['id']; ?>" <?php echo ($f_id_tecnico == ($t['id_tecnico'] ?? $t['id'])) ? 'selected' : ''; ?>><?php echo htmlspecialchars($t['nome_tecnico']); ?></option>
                     <?php endwhile; ?>
                 </select>
             </div>
@@ -155,7 +155,6 @@ $lista_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos
                         <td>
                             <?php 
                                 echo htmlspecialchars($row['nome_tecnico'] ?? ' '); 
-                                // Verificação atualizada para status_tecnico
                                 if (isset($row['status_tecnico']) && $row['status_tecnico'] == 'Inativo') {
                                     echo '<span class="tag-inativo">(Inativo)</span>';
                                 }

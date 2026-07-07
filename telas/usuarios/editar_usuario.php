@@ -27,40 +27,40 @@ $resultado_empresas = $conexao->query($sql_empresas);
 // ---------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 3.1 Coleta e Limpeza
-    $id         = (int)$_POST['id'];
-    $nome       = trim($_POST['nome']);
-    $email      = trim($_POST['email']); 
-    $perfil     = trim($_POST['perfil']);
-    $id_cliente = (int)$_POST['id_cliente'];
-    $senha_nova = trim($_POST['senha']); // Pode vir vazia se não for mudar
+    $id          = (int)$_POST['id'];
+    $nome        = trim($_POST['nome']);
+    $email       = trim($_POST['email']); 
+    $num_celular = trim($_POST['num_celular']);
+    $perfil      = trim($_POST['perfil']);
+    $id_cliente  = (int)$_POST['id_cliente'];
+    $localizacao = !empty(trim($_POST['localizacao'])) ? trim($_POST['localizacao']) : null; // Opcional
+    $senha_nova  = trim($_POST['senha']); // Pode vir vazia se não for mudar
 
-    // 3.2 Validação de Obrigatoriedade (Exceto Senha)
+    // 3.2 Validação de Obrigatoriedade (Exceto Senha e Localização - Status removido daqui)
     if (empty($nome) || empty($email) || empty($perfil) || empty($id_cliente)) {
         $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos obrigatórios (*) devem ser preenchidos.</div>";
         // Mantém os dados digitados na tela em caso de erro
         $usuario = $_POST;
     } else {
         
-        // 3.3 Decide se vai atualizar a senha ou manter a antiga
-        if (!empty($senha_nova)) {
-            // Se digitou senha nova, criptografa ela
+        // 3.3 Decide se vai atualizar a senha ou manter a antiga (🚀 Status removido dos UPDATEs)
+        if (isset($senha_nova) && $senha_nova !== '') {
             $senha_cripto = password_hash($senha_nova, PASSWORD_BCRYPT);
-            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, perfil = ?, id_cliente = ?, senha = ? WHERE id = ?";
+            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ?, localizacao = ?, senha = ? WHERE id = ?";
         } else {
-            // Se deixou em branco, a query NÃO mexe no campo de senha
-            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, perfil = ?, id_cliente = ? WHERE id = ?";
+            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ?, localizacao = ? WHERE id = ?";
         }
         
         try {
             $stmt_update = $conexao->prepare($sql_update);
             
-            if (!empty($senha_nova)) {
-                // sssisi -> 4 strings, 1 inteiro (id_cliente), 1 string (senha), 1 inteiro (id)
-                $stmt_update->bind_param("sssssi", $nome, $email, $perfil, $id_cliente, $senha_cripto, $id);
-            } else {
-                // sssii -> 3 strings, 2 inteiros (id_cliente e id)
-                $stmt_update->bind_param("sssii", $nome, $email, $perfil, $id_cliente, $id);
-            }
+        if (isset($senha_nova) && $senha_nova !== '') {
+            // 🚀 CORRIGIDO: 5 strings, 1 inteiro (id_cliente), 1 string (senha), 1 inteiro (id) -> "sssssisi"
+            $stmt_update->bind_param("sssssisi", $nome, $email, $num_celular, $perfil, $id_cliente, $localizacao, $senha_cripto, $id);
+        } else {
+            // 🚀 CORRIGIDO: 5 strings, 1 inteiro (id_cliente), 1 inteiro (id) -> "sssssii"
+            $stmt_update->bind_param("sssssii", $nome, $email, $num_celular, $perfil, $id_cliente, $localizacao, $id);
+        }
 
             if ($stmt_update->execute()) {
                 $conexao->close();
@@ -69,13 +69,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
         } catch (mysqli_sql_exception $e) {
-            // Tratamento de erro de Duplicidade (E-mail já cadastrado para outro id)
             if ($e->getCode() == 1062) {
                 $mensagem = "<div class='msg-erro'>❌ Erro: O e-mail '$email' já está em uso por outro usuário.</div>";
             } else {
                 $mensagem = "<div class='msg-erro'>❌ Erro ao atualizar: " . $e->getMessage() . "</div>";
             }
-            // Recarrega os dados preenchidos na tela
             $usuario = $_POST;
         }
 
@@ -88,10 +86,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // ---------------------------------------------
 // 4. LÓGICA DE CARREGAMENTO DE DADOS (GET / PÓS-POST)
 // ---------------------------------------------
-if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id) && $id > 0 && !$usuario)) {
+if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id) && $id > 0 && !isset($usuario))) {
     $id_para_busca = isset($_GET['id']) ? (int)$_GET['id'] : $id; 
     
-    $sql_select = "SELECT id, nome, email, perfil, id_cliente FROM usuarios WHERE id = ?";
+    // Mantemos o 'status' no SELECT inicial apenas caso precise carregar na listagem, mas ele não será editável aqui
+    $sql_select = "SELECT id, nome, email, num_celular, perfil, id_cliente, localizacao, status FROM usuarios WHERE id = ?";
     $stmt_select = $conexao->prepare($sql_select);
     $stmt_select->bind_param("i", $id_para_busca);
     $stmt_select->execute();
@@ -99,7 +98,7 @@ if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id) && $id > 0 &&
 
     if ($resultado->num_rows == 1) {
         $usuario = $resultado->fetch_assoc();
-    } else if (!$usuario) {
+    } else if (!isset($usuario)) {
         $mensagem = "<div class='msg-erro'>Usuário não encontrado ou ID inválido.</div>";
     }
     $stmt_select->close();
@@ -107,12 +106,12 @@ if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id) && $id > 0 &&
 
 $conexao->close();
 
-if (!$usuario && empty($mensagem)) {
+if (!isset($usuario) && empty($mensagem)) {
     $mensagem = "<div class='msg-alerta'>Nenhum ID de usuário fornecido para edição.</div>";
 }
 ?>
 
-<?php if ($usuario) { $usuario_encontrado = true; } ?>
+<?php if (isset($usuario) && $usuario) { $usuario_encontrado = true; } ?>
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -139,23 +138,30 @@ if (!$usuario && empty($mensagem)) {
                 
                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($usuario['id']); ?>">
 
-                <label for="nome">Nome Completo (*):</label>
+                <label for="nome">Nome (*):</label>
                 <input type="text" id="nome" name="nome" value="<?php echo htmlspecialchars($usuario['nome']); ?>" required>
 
-                <label for="email">E-mail de Login (*):</label>
+                <label for="email">E-mail (*):</label>
                 <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($usuario['email']); ?>" required>
+
+                <label for="num_celular">Telefone (*):</label>
+                <input type="text" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($usuario['num_celular'] ?? ''); ?>" placeholder="(31) 99999-9999" maxlength="20" required>
 
                 <label for="senha">Nova Senha:</label>
                 <input type="password" id="senha" name="senha" placeholder="Digite apenas se quiser mudar a senha atual">
 
-                <label for="perfil">Perfil de Acesso (*):</label>
+                <label for="localizacao">Localização:</label>
+                <input type="text" id="localizacao" name="localizacao" value="<?php echo htmlspecialchars($usuario['localizacao'] ?? ''); ?>" placeholder="Ex: Prédio B, TI, Remoto" maxlength="255">
+
+                <label for="perfil">Perfil (*):</label>
                 <select id="perfil" name="perfil" required>
-                    <option value="user" <?php echo ($usuario['perfil'] === 'user') ? 'selected' : ''; ?>>Usuário Comum (Cliente)</option>
+                    <option value="">-- Selecione o Perfil --</option>
+                    <option value="normal" <?php echo ($usuario['perfil'] === 'normal') ? 'selected' : ''; ?>>Usuário Comum (Cliente)</option>
                     <option value="tecnico" <?php echo ($usuario['perfil'] === 'tecnico') ? 'selected' : ''; ?>>Técnico de Suporte</option>
                     <option value="admin" <?php echo ($usuario['perfil'] === 'admin') ? 'selected' : ''; ?>>Administrador do Sistema</option>
                 </select>
 
-                <label for="id_cliente">Empresa / Cliente Vinculado (*):</label>
+                <label for="id_cliente">Empresa (*):</label>
                 <select id="id_cliente" name="id_cliente" required>
                     <option value="">-- Selecione a Empresa --</option>
                     <?php if ($resultado_empresas && $resultado_empresas->num_rows > 0): ?>
@@ -176,5 +182,25 @@ if (!$usuario && empty($mensagem)) {
         </div>
     </main>
 
+    <script src="../../js/mascaras.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const inputCelular = document.getElementById("num_celular");
+            if (inputCelular) {
+                inputCelular.addEventListener("input", function(e) {
+                    let tel = e.target.value.replace(/\D/g, "");
+                    if (tel.length > 0) {
+                        tel = tel.replace(/^(\d{2})(\d)/g, "($1) $2");
+                    }
+                    if (tel.length > 9) {
+                        tel = tel.replace(/(\d{5})(\d)/, "$1-$2");
+                    } else if (tel.length > 5) {
+                        tel = tel.replace(/(\d{4})(\d)/, "$1-$2");
+                    }
+                    e.target.value = tel.substring(0, 15);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

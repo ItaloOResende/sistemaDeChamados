@@ -15,23 +15,24 @@ $cadastro_sucesso = false;
 $mensagem_feedback = "";
 if (isset($_GET['status'])) {
     if ($_GET['status'] == 'success_add') {
-        $mensagem_feedback = "<div class='msg-sucesso'>✅ Usuário cadastrado com sucesso!</div>";
+        $mensagem_feedback = "✅ Usuário cadastrado com sucesso!";
     } elseif ($_GET['status'] == 'success_edit') {
-        $mensagem_feedback = "<div class='msg-sucesso'>✅ Usuário atualizado com sucesso!</div>";
+        $mensagem_feedback = "✅ Usuário atualizado com sucesso!";
     } elseif ($_GET['status'] == 'success_delete') {
-        $mensagem_feedback = "<div class='msg-sucesso'>✅ Usuário excluído com sucesso!</div>";
+        $mensagem_feedback = "✅ Usuário excluído com sucesso!";
     } elseif ($_GET['status'] == 'error_delete' || $_GET['status'] == 'error_no_id') {
-        $mensagem_feedback = "<div class='msg-erro'>❌ Erro ao excluir o usuário.</div>";
+        $mensagem_feedback = "❌ Erro ao excluir o usuário.";
     }
 }
 
 // ---------------------------------------------
-// 3. LÓGICA DE BUSCA DE DADOS (COM JOIN PARA TRAZER A EMPRESA)
+// 3. LÓGICA DE BUSCA DE DADOS (🚀 FILTRADO APENAS ATIVOS)
 // ---------------------------------------------
-// Buscamos os dados do usuário e fazemos um JOIN com clientes para pegar o 'nome_empresa'
-$sql = "SELECT u.id, u.nome, u.email, u.perfil, u.criado_em, c.nome_empresa 
+// Mudado para LEFT JOIN para técnicos masters sem empresa aparecerem e adicionado o WHERE status = 'Ativo'
+$sql = "SELECT u.id, u.nome, u.email, u.num_celular, u.perfil, u.criado_em, c.nome_empresa 
         FROM usuarios u
-        LEFT JOIN clientes c ON u.id_cliente = c.id_cliente
+        LEFT JOIN clientes c ON u.id_cliente = c.id_cliente 
+        WHERE u.status = 'Ativo'
         ORDER BY u.nome ASC";
         
 $resultado = $conexao->query($sql);
@@ -69,10 +70,10 @@ $conexao->close();
         <?php if ($erro_query): ?>
             <div class="msg-erro"><?php echo $erro_query; ?></div>
         <?php elseif ($resultado->num_rows == 0): ?>
-            <div class="msg-alerta">Nenhum usuário encontrado.</div>
+            <div class="msg-alerta">Nenhum usuário ativo encontrado.</div>
         <?php else: ?>
             
-            <p>Total de usuários cadastrados: <strong><?php echo $resultado->num_rows; ?></strong></p>
+            <p>Total de usuários ativos: <strong><?php echo $resultado->num_rows; ?></strong></p>
 
             <table>
                 <thead>
@@ -80,6 +81,7 @@ $conexao->close();
                         <th>ID</th>
                         <th>Nome</th>
                         <th>Email</th>
+                        <th>Celular</th>
                         <th>Perfil</th>
                         <th>Empresa / Cliente</th>
                         <th>Criado Em</th>
@@ -92,6 +94,7 @@ $conexao->close();
                         <td><?php echo $usuario['id']; ?></td>
                         <td><?php echo htmlspecialchars($usuario['nome']); ?></td>
                         <td><?php echo htmlspecialchars($usuario['email']); ?></td>
+                        <td><?php echo !empty($usuario['num_celular']) ? htmlspecialchars($usuario['num_celular']) : '<span style="color: #999; font-style: italic;">Não informado</span>'; ?></td>
                         <td>
                             <span class="badge-perfil <?php echo $usuario['perfil']; ?>" style="text-transform: uppercase; font-weight: bold;">
                                 <?php echo htmlspecialchars($usuario['perfil']); ?>
@@ -99,7 +102,6 @@ $conexao->close();
                         </td>
                         <td>
                             <?php 
-                                // Se o usuário não tiver empresa vinculada (ex: um técnico master) mostra um traço
                                 echo $usuario['nome_empresa'] ? htmlspecialchars($usuario['nome_empresa']) : '<span style="color:#999;">Nenhuma</span>'; 
                             ?>
                         </td>
@@ -121,9 +123,9 @@ $conexao->close();
     </main>
     
     <script>
-        // Exibe o alerta de feedback caso exista na URL
+        // Exibe o alerta de feedback caso exista na URL (simplificado direto com a variável JS)
         <?php if (!empty($mensagem_feedback)): ?>
-        var feedbackMensagem = "<?php echo strip_tags($mensagem_feedback); ?>";
+        var feedbackMensagem = "<?php echo $mensagem_feedback; ?>";
         alert(feedbackMensagem);
 
         // Limpa os parâmetros da URL para evitar o reenvio ao dar F5

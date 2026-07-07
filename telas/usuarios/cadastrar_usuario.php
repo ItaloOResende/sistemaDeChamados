@@ -1,5 +1,12 @@
 <?php
 session_start();
+
+// TRAVA DE SEGURANÇA: Só administrador acessa essa tela
+if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admin') {
+    header("Location: ../chamados/lista_chamados.php");
+    exit();
+}
+
 // ---------------------------------------------
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
 // ---------------------------------------------
@@ -20,36 +27,39 @@ $resultado_empresas = $conexao->query($sql_empresas);
 // ---------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Coleta e limpeza básica dos dados
-    $nome       = trim($_POST['nome']);
-    $email      = trim($_POST['email']); 
-    $senha_pura = trim($_POST['senha']);
-    $perfil     = trim($_POST['perfil']);
-    $id_cliente = trim($_POST['id_cliente']); // Recebe o ID da empresa vinculada
+    $nome        = trim($_POST['nome']);
+    $email       = trim($_POST['email']); 
+    $num_celular = trim($_POST['num_celular']);
+    $senha_pura  = trim($_POST['senha']);
+    $perfil      = trim($_POST['perfil']);
+    $id_cliente  = (int)$_POST['id_cliente'];
+    $localizacao = !empty(trim($_POST['localizacao'])) ? trim($_POST['localizacao']) : null; // Opcional
 
-    // Validação: Todos os campos são obrigatórios
+    // Validação: Campos obrigatórios (Localização e Status saíram da checagem)
     if (empty($nome) || empty($email) || empty($senha_pura) || empty($perfil) || empty($id_cliente)) {
-        $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos são obrigatórios. Por favor, preencha todos os dados.</div>";
+        $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos obrigatórios (*) devem ser preenchidos.</div>";
     } else {
-        // Criptografa a senha usando o BCRYPT nativo do seu ambiente
+        // Criptografa a senha usando o BCRYPT
         $senha_cripto = password_hash($senha_pura, PASSWORD_BCRYPT);
 
-        // QUERY SQL INCLUINDO AS COLUNAS DA SUA TABELA USUARIOS
-        $sql = "INSERT INTO usuarios (nome, email, senha, perfil, id_cliente) VALUES (?, ?, ?, ?, ?)";
+        // 🚀 O 'Ativo' agora é injetado direto e fixo na Query SQL
+        $sql = "INSERT INTO usuarios (nome, email, senha, num_celular, perfil, id_cliente, localizacao, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Ativo')";
         
-        // Prepared Statement para segurança total contra SQL Injection
         $stmt = $conexao->prepare($sql);
         
-        // "ssssi" -> 4 strings (nome, email, senha, perfil) e 1 inteiro (id_cliente)
-        $stmt->bind_param("ssssi", $nome, $email, $senha_cripto, $perfil, $id_cliente); 
+        // 🚀 Ajustado para "sssssis" -> 5 strings, 1 inteiro (id_cliente) e 1 string (localizacao)
+        $stmt->bind_param("sssssis", $nome, $email, $senha_cripto, $num_celular, $perfil, $id_cliente, $localizacao); 
 
-        if ($stmt->execute()) {
-            $cadastro_sucesso = true; 
-        } else {
-            // Caso tente cadastrar um e-mail que já existe
-            if ($conexao->errno == 1062) {
+        try {
+            if ($stmt->execute()) {
+                $cadastro_sucesso = true; 
+            }
+        } catch (mysqli_sql_exception $e) {
+            // Captura o erro do MySQL de Entrada Duplicada (Email já existe)
+            if ($e->getCode() == 1062 || $conexao->errno == 1062) {
                 $mensagem = "<div class='msg-erro'>❌ Erro: Este e-mail já está cadastrado no sistema.</div>";
             } else {
-                $mensagem = "<div class='msg-erro'>❌ Erro ao cadastrar usuário: " . $conexao->error . "</div>";
+                $mensagem = "<div class='msg-erro'>❌ Erro ao cadastrar usuário: " . $e->getMessage() . "</div>";
             }
         }
         
@@ -88,27 +98,31 @@ if ($cadastro_sucesso === true) {
     <main>
         <?php echo $mensagem; // Exibe as mensagens de erro se houver ?>
 
-        <form method="POST" action="">
-            <h2>Novo Usuário / Colaborador</h2>
-            
-            <label for="nome">Nome Completo:</label>
+        <form method="POST" action="">           
+            <label for="nome">Nome (*):</label>
             <input type="text" id="nome" name="nome" maxlength="255" required>
 
-            <label for="email">Email (Login):</label>
+            <label for="email">Email (*):</label>
             <input type="email" id="email" name="email" maxlength="100" autocomplete="off" required>
 
-            <label for="senha">Senha de Acesso:</label>
+            <label for="num_celular">Telefone (*):</label>
+            <input type="text" id="num_celular" name="num_celular" placeholder="(31) 99999-9999" maxlength="20" required>
+
+            <label for="senha">Senha (*):</label>
             <input type="password" id="senha" name="senha" placeholder="Digite uma senha segura" autocomplete="new-password" required>
 
-            <label for="perfil">Perfil de Acesso:</label>
+            <label for="localizacao">Localização:</label>
+            <input type="text" id="localizacao" name="localizacao" placeholder="Ex: Prédio B, TI, Remoto" maxlength="255">
+
+            <label for="perfil">Perfil (*):</label>
             <select id="perfil" name="perfil" required>
                 <option value="">-- Selecione o Perfil --</option>
-                <option value="user">Usuário Comum (Cliente)</option>
-                <option value="tecnico">Técnico de Suporte</option>
+                <option value="normal">Usuário Comum (Cliente)</option>
+                <option value="tecnico">Técnico de Suporte</option> 
                 <option value="admin">Administrador do Sistema</option>
             </select>
 
-            <label for="id_cliente">Empresa / Cliente Vinculado:</label>
+            <label for="id_cliente">Empresa (*):</label>
             <select id="id_cliente" name="id_cliente" required>
                 <option value="">-- Selecione a Empresa --</option>
                 <?php if ($resultado_empresas && $resultado_empresas->num_rows > 0): ?>
@@ -130,18 +144,29 @@ if ($cadastro_sucesso === true) {
         </div>
     </main>
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const inputCelular = document.getElementById("num_celular");
+            if (inputCelular) {
+                inputCelular.addEventListener("input", function(e) {
+                    let tel = e.target.value.replace(/\D/g, "");
+                    if (tel.length > 0) {
+                        tel = tel.replace(/^(\d{2})(\d)/g, "($1) $2");
+                    }
+                    if (tel.length > 9) {
+                        tel = tel.replace(/(\d{5})(\d)/, "$1-$2");
+                    } else if (tel.length > 5) {
+                        tel = tel.replace(/(\d{4})(\d)/, "$1-$2");
+                    }
+                    e.target.value = tel.substring(0, 15);
+                });
+            }
+        });
+    </script>
+
     <?php 
     // Fecha a conexão depois de renderizar as empresas no select
     $conexao->close();
-
-    // Executa o script de sucesso e redirecionamento idêntico ao seu padrão
-    if ($cadastro_sucesso === true) {
-        echo "
-            <script>
-                mostrarSucessoERedirecionar('Usuário cadastrado com sucesso!', 'lista_usuarios.php?status=success_add');
-            </script>
-        ";
-    }
     ?>
 </body>
 </html>

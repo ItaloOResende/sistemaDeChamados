@@ -2,11 +2,6 @@
 session_start();
 // Define o fuso horário para o horário de Brasília
 date_default_timezone_set('America/Sao_Paulo');
-// ---------------------------------------------
-// 1. CONFIGURAÇÃO E CONEXÃO
-// ---------------------------------------------
-// Define o fuso horário para o horário de Brasília
-date_default_timezone_set('America/Sao_Paulo');
 
 // 1. CONFIGURAÇÃO E CONEXÃO
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
@@ -68,25 +63,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // ---------------------------------------------
-// 3. BUSCAR DADOS PARA O FORMULÁRIO (ATUALIZADO)
+// 3. BUSCAR DADOS PARA O FORMULÁRIO (🚀 ATUALIZADO PARA A TABELA USUARIOS)
 // ---------------------------------------------
 $sql = "SELECT c.*, 
                cli.nome_empresa, 
                cli.num_celular AS tel_cliente, 
                cli.localizacao AS local_cliente,
-               tec.nome_tecnico,
-               tec.num_celular AS tel_tecnico,
-               tec.localizacao AS local_tecnico
+               u.nome AS nome_tecnico,
+               u.num_celular AS tel_tecnico,
+               u.localizacao AS local_tecnico
         FROM chamados c 
         JOIN clientes cli ON c.id_cliente = cli.id_cliente 
-        LEFT JOIN tecnicos tec ON c.id_tecnico_atribuido = tec.id_tecnico
+        LEFT JOIN usuarios u ON c.id_tecnico_atribuido = u.id
         WHERE c.id_chamado = $id_chamado";
 
 $resultado = $conexao->query($sql);
 $chamado = $resultado->fetch_assoc();
 
-// Consultas para alimentar os selects - Atualizadas com os novos nomes de coluna
-$res_tecnicos = $conexao->query("SELECT id_tecnico, nome_tecnico FROM tecnicos WHERE status_tecnico = 'Ativo' ORDER BY nome_tecnico ASC");
+// Consultas para alimentar os selects - 🚀 Técnicos e Admins ativos vindos de 'usuarios'
+$res_tecnicos = $conexao->query("SELECT id, nome FROM usuarios WHERE (perfil = 'tecnico' OR perfil = 'admin') AND status = 'Ativo' ORDER BY nome ASC");
 $res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC");
 ?>
 
@@ -139,8 +134,8 @@ $res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes W
         <select name="id_tecnico">
             <option value="">-- Sem Técnico --</option>
             <?php while($t = $res_tecnicos->fetch_assoc()): ?>
-                <option value="<?php echo $t['id_tecnico']; ?>" <?php echo ($t['id_tecnico'] == $chamado['id_tecnico_atribuido']) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($t['nome_tecnico']); ?>
+                <option value="<?php echo $t['id']; ?>" <?php echo ($t['id'] == $chamado['id_tecnico_atribuido']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($t['nome']); ?>
                 </option>
             <?php endwhile; ?>
         </select>
@@ -210,8 +205,8 @@ $res_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes W
             alert("✅ Chamado atualizado com sucesso!");
             window.location.href = "lista_chamados.php";
         </script>
-        <?php endif; ?>
+    <?php endif; ?>
 
-        <script src="../../js/mascaras.js?v=<?php echo time(); ?>"></script>
-    </body>
+    <script src="../../js/mascaras.js?v=<?php echo time(); ?>"></script>
+</body>
 </html>

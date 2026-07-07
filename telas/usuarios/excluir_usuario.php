@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// TRAVA DE SEGURANÇA: Só o administrador pode excluir usuários
+// TRAVA DE SEGURANÇA: Só o administrador pode inativar usuários
 if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admin') {
     header("Location: ../chamados/lista_chamados.php");
     exit();
@@ -20,9 +20,10 @@ $id_usuario = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 if ($id_usuario > 0) {
     // ---------------------------------------------
-    // 3. LÓGICA DE EXCLUSÃO (HARD DELETE)
+    // 3. LÓGICA DE EXCLUSÃO LÓGICA (SOFT DELETE)
+    // 🚀 Em vez de deletar, altera o status para 'Inativo'
     // ---------------------------------------------
-    $sql = "DELETE FROM usuarios WHERE id = ?";
+    $sql = "UPDATE usuarios SET status = 'Inativo' WHERE id = ?";
     
     try {
         $stmt = $conexao->prepare($sql);
@@ -30,25 +31,27 @@ if ($id_usuario > 0) {
         
         if ($stmt->execute()) {
             if ($stmt->affected_rows > 0) {
-                // Deletou com sucesso -> Volta para a lista com a mensagem de sucesso
+                // Inativou com sucesso -> Volta para a lista com status de sucesso
                 $conexao->close();
                 header("Location: lista_usuarios.php?status=success_delete");
                 exit();
             } else {
-                // O ID não foi encontrado no banco
+                // O ID não foi encontrado ou o usuário já estava Inativo
                 $conexao->close();
                 header("Location: lista_usuarios.php?status=error_no_id");
                 exit();
             }
         }
     } catch (mysqli_sql_exception $e) {
-        // Se der erro de chave estrangeira (ex: se o usuário tiver chamados vinculados a ele)
+        // Trata qualquer erro inesperado do banco
         $conexao->close();
         header("Location: lista_usuarios.php?status=error_delete");
         exit();
     }
     
-    $stmt->close();
+    if (isset($stmt)) {
+        $stmt->close();
+    }
 } else {
     $conexao->close();
     header("Location: lista_usuarios.php?status=error_no_id");
