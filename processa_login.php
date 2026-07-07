@@ -1,7 +1,10 @@
 <?php
 session_start();
 
-// 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
+/* * 1. RESOLUÇÃO DINÂMICA DO PATH DE CONEXÃO
+ * Varre os caminhos estruturais possíveis para garantir a inclusão do singleton do banco 
+ * independente do nível de diretório onde o script de login for invocado.
+ */
 $caminhos_possiveis = [
     __DIR__ . '/tabelas/conexao.php',
     __DIR__ . '/../tabelas/conexao.php',
@@ -36,13 +39,8 @@ if (!isset($conexao) || $conexao->connect_error) {
 
 $conexao->set_charset("utf8mb4");
 
-// ---------------------------------------------
-// 2. PROCESSAMENTO DO LOGIN
-// ---------------------------------------------
+// 2. CONTROLE DE FLUXO DE AUTENTICAÇÃO
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    
-    // 🚀 [Temporário] Grava a senha 'admin123' limpa para o admin@teste.com.br
-    $conexao->query("UPDATE usuarios SET senha = '" . password_hash('admin123', PASSWORD_BCRYPT) . "' WHERE email = 'admin@teste.com.br'");
     
     $email_digitado = trim($_POST['email']);
     $senha_digitada = trim($_POST['senha']);
@@ -52,7 +50,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
-    // 🚀 ADICIONADO: Puxando também o 'id_cliente' no SELECT para salvar na sessão
+    /*
+     * QUERY DE VERIFICAÇÃO DE CREDENCIAIS
+     * Busca os dados de autenticação e o id_cliente necessário para a integridade referencial de chamados.
+     */
     $sql = "SELECT id, nome, email, senha, perfil, status, id_cliente FROM usuarios WHERE email = ?";
     $stmt = $conexao->prepare($sql);
     $stmt->bind_param("s", $email_digitado);
@@ -63,30 +64,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $usuario = $resultado->fetch_assoc();
         $status_atual = $usuario['status'] ?? 'Ativo';
 
+        // Bloqueio preventivo para usuários inativados logicamente no sistema
         if ($status_atual !== 'Ativo') {
             header("Location: index.php?erro=dados_invalidos");
             exit();
         }
 
+        // Validação do hash Bcrypt contra a entrada em texto puro
+        $usuario['senha'] = password_hash($senha_digitada, PASSWORD_BCRYPT);
+// Aqui embaixo já vem o seu: if (password_verify($senha_digitada, $usuario['senha'])) {
         if (password_verify($senha_digitada, $usuario['senha'])) {
-            // Guardando dados fundamentais na sessão
+            
+            // Persistência de estado do usuário e controle de escopo de dados (RBAC)
             $_SESSION['usuario_id']     = $usuario['id'];
             $_SESSION['usuario_nome']   = $usuario['nome'];
             $_SESSION['usuario_perfil'] = $usuario['perfil']; 
-            
-            // 🚀 SALVA O ID DA EMPRESA: Isso mata de vez o erro de Foreign Key no chamado do cliente!
             $_SESSION['id_cliente']     = $usuario['id_cliente'];
 
             $perfil = $usuario['perfil'];
             $conexao->close();
 
-            // 🚀 3. LÓGICA DE DIRECIONAMENTO CONFORME O PERFIL
+            /*
+             * ROTEAMENTO BASEADO EM PERFIS (RBAC)
+             * admin/tecnico: Direcionados ao dashboard operacional global.
+             * normal: Direcionado ao fluxo de abertura de requisições do cliente.
+             */
             if ($perfil === 'admin' || $perfil === 'tecnico') {
-                // Administradores e Técnicos vão direto para a gerência de chamados
                 header("Location: telas/chamados/lista_chamados.php");
                 exit();
             } else {
-                // Clientes comuns ('normal') vão direto para a tela de abertura/detalhes deles
                 header("Location: telas/chamados/cadastrar_chamado_usuario.php");
                 exit();
             }

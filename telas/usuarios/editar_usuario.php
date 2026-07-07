@@ -7,60 +7,49 @@ if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admi
     exit();
 }
 
-// ---------------------------------------------
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
-// ---------------------------------------------
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
 
 $mensagem = "";
 $usuario_encontrado = false;
 
-// ---------------------------------------------
 // 2. BUSCA AS EMPRESAS ATIVAS PARA O SELECT DO FORMULÁRIO
-// ---------------------------------------------
 $sql_empresas = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
 $resultado_empresas = $conexao->query($sql_empresas);
 
-// ---------------------------------------------
 // 3. LÓGICA DE ATUALIZAÇÃO (POST)
-// ---------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // 3.1 Coleta e Limpeza
     $id          = (int)$_POST['id'];
     $nome        = trim($_POST['nome']);
     $email       = trim($_POST['email']); 
     $num_celular = trim($_POST['num_celular']);
     $perfil      = trim($_POST['perfil']);
     $id_cliente  = (int)$_POST['id_cliente'];
-    $localizacao = !empty(trim($_POST['localizacao'])) ? trim($_POST['localizacao']) : null; // Opcional
-    $senha_nova  = trim($_POST['senha']); // Pode vir vazia se não for mudar
+    $senha_nova  = trim($_POST['senha']); 
 
-    // 3.2 Validação de Obrigatoriedade (Exceto Senha e Localização - Status removido daqui)
     if (empty($nome) || empty($email) || empty($perfil) || empty($id_cliente)) {
         $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos obrigatórios (*) devem ser preenchidos.</div>";
-        // Mantém os dados digitados na tela em caso de erro
         $usuario = $_POST;
     } else {
         
-        // 3.3 Decide se vai atualizar a senha ou manter a antiga (🚀 Status removido dos UPDATEs)
+        // 🚀 CORRIGIDO: Removida a coluna 'localizacao' do banco das strings de UPDATE
         if (isset($senha_nova) && $senha_nova !== '') {
             $senha_cripto = password_hash($senha_nova, PASSWORD_BCRYPT);
-            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ?, localizacao = ?, senha = ? WHERE id = ?";
+            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ?, senha = ? WHERE id = ?";
         } else {
-            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ?, localizacao = ? WHERE id = ?";
+            $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ? WHERE id = ?";
         }
         
         try {
             $stmt_update = $conexao->prepare($sql_update);
             
-        if (isset($senha_nova) && $senha_nova !== '') {
-            // 🚀 CORRIGIDO: 5 strings, 1 inteiro (id_cliente), 1 string (senha), 1 inteiro (id) -> "sssssisi"
-            $stmt_update->bind_param("sssssisi", $nome, $email, $num_celular, $perfil, $id_cliente, $localizacao, $senha_cripto, $id);
-        } else {
-            // 🚀 CORRIGIDO: 5 strings, 1 inteiro (id_cliente), 1 inteiro (id) -> "sssssii"
-            $stmt_update->bind_param("sssssii", $nome, $email, $num_celular, $perfil, $id_cliente, $localizacao, $id);
-        }
+            // 🚀 CORRIGIDO: Recalculados os tipos no bind_param sem a string da localização
+            if (isset($senha_nova) && $senha_nova !== '') {
+                $stmt_update->bind_param("sssssii", $nome, $email, $num_celular, $perfil, $id_cliente, $senha_cripto, $id);
+            } else {
+                $stmt_update->bind_param("ssssii", $nome, $email, $num_celular, $perfil, $id_cliente, $id);
+            }
 
             if ($stmt_update->execute()) {
                 $conexao->close();
@@ -83,14 +72,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// ---------------------------------------------
 // 4. LÓGICA DE CARREGAMENTO DE DADOS (GET / PÓS-POST)
-// ---------------------------------------------
 if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id) && $id > 0 && !isset($usuario))) {
     $id_para_busca = isset($_GET['id']) ? (int)$_GET['id'] : $id; 
     
-    // Mantemos o 'status' no SELECT inicial apenas caso precise carregar na listagem, mas ele não será editável aqui
-    $sql_select = "SELECT id, nome, email, num_celular, perfil, id_cliente, localizacao, status FROM usuarios WHERE id = ?";
+    // 🚀 CORRIGIDO: Removido o campo 'localizacao' do SELECT original
+    $sql_select = "SELECT id, nome, email, num_celular, perfil, id_cliente, status FROM usuarios WHERE id = ?";
     $stmt_select = $conexao->prepare($sql_select);
     $stmt_select->bind_param("i", $id_para_busca);
     $stmt_select->execute();
@@ -113,7 +100,6 @@ if (!isset($usuario) && empty($mensagem)) {
 
 <?php if (isset($usuario) && $usuario) { $usuario_encontrado = true; } ?>
 
-<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -145,13 +131,10 @@ if (!isset($usuario) && empty($mensagem)) {
                 <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($usuario['email']); ?>" required>
 
                 <label for="num_celular">Telefone (*):</label>
-                <input type="text" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($usuario['num_celular'] ?? ''); ?>" placeholder="(31) 99999-9999" maxlength="20" required>
+                <input type="text" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($usuario['num_celular'] ?? ''); ?>" placeholder="(31) 99999-9999" maxlength="20" required oninput="if (typeof mascaraCelular === 'function') mascaraCelular(this)">
 
                 <label for="senha">Nova Senha:</label>
                 <input type="password" id="senha" name="senha" placeholder="Digite apenas se quiser mudar a senha atual">
-
-                <label for="localizacao">Localização:</label>
-                <input type="text" id="localizacao" name="localizacao" value="<?php echo htmlspecialchars($usuario['localizacao'] ?? ''); ?>" placeholder="Ex: Prédio B, TI, Remoto" maxlength="255">
 
                 <label for="perfil">Perfil (*):</label>
                 <select id="perfil" name="perfil" required>
@@ -182,23 +165,13 @@ if (!isset($usuario) && empty($mensagem)) {
         </div>
     </main>
 
-    <script src="../../js/mascaras.js"></script>
+    <script src="../../js/mascaras.js?v=<?php echo time(); ?>"></script>
     <script>
+        // 🚀 CORRIGIDO: Formata o telefone logo na inicialização se já vier do banco de dados
         document.addEventListener("DOMContentLoaded", function() {
             const inputCelular = document.getElementById("num_celular");
-            if (inputCelular) {
-                inputCelular.addEventListener("input", function(e) {
-                    let tel = e.target.value.replace(/\D/g, "");
-                    if (tel.length > 0) {
-                        tel = tel.replace(/^(\d{2})(\d)/g, "($1) $2");
-                    }
-                    if (tel.length > 9) {
-                        tel = tel.replace(/(\d{5})(\d)/, "$1-$2");
-                    } else if (tel.length > 5) {
-                        tel = tel.replace(/(\d{4})(\d)/, "$1-$2");
-                    }
-                    e.target.value = tel.substring(0, 15);
-                });
+            if (inputCelular && typeof mascaraCelular === 'function') {
+                mascaraCelular(inputCelular);
             }
         });
     </script>

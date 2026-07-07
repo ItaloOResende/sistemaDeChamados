@@ -80,25 +80,5 @@ INSERT INTO clientes (
     'Ativo'
 );
 
-INSERT INTO usuarios (
-    id, 
-    nome, 
-    email, 
-    senha, 
-    num_celular, 
-    perfil, 
-    id_cliente, 
-    localizacao, 
-    status
-) VALUES (
-    1, 
-    'Administrador Master', 
-    'admin@teste.com.br', 
-    -- 🚩 Essa é a senha 'admin123' já criptografada em Bcrypt para o PHP reconhecer:
-    '$2y$10$e0MYzWvV26ybyZf3U0v8mO8v7wP7Ymbe9X5A3ZREB0H8mS7yG0X8a', 
-    '(31) 99999-9999', 
-    'admin', 
-    1, -- Vinculado à Empresa Teste (ID 1) que você criou
-    'Escritório Central', 
-    'Ativo'
-);
+INSERT INTO usuarios (nome, email, senha, num_celular, perfil, id_cliente, localizacao, status) 
+VALUES ('Administrador', 'pitchalobill@teste.com', '$2y$10$e0MYzWvV26ybyZf3U0v8mO8v7wP7Ymbe9X5A3ZREB0H8mS7yG0X8a', '31999999999', 'admin', 1, 'TI', 'Ativo');

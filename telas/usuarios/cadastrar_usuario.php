@@ -26,36 +26,28 @@ $resultado_empresas = $conexao->query($sql_empresas);
 // 3. LÓGICA DE PROCESSAMENTO DO FORMULÁRIO (USUÁRIOS)
 // ---------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Coleta e limpeza básica dos dados
     $nome        = trim($_POST['nome']);
     $email       = trim($_POST['email']); 
     $num_celular = trim($_POST['num_celular']);
     $senha_pura  = trim($_POST['senha']);
     $perfil      = trim($_POST['perfil']);
     $id_cliente  = (int)$_POST['id_cliente'];
-    $localizacao = !empty(trim($_POST['localizacao'])) ? trim($_POST['localizacao']) : null; // Opcional
 
-    // Validação: Campos obrigatórios (Localização e Status saíram da checagem)
     if (empty($nome) || empty($email) || empty($senha_pura) || empty($perfil) || empty($id_cliente)) {
         $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos obrigatórios (*) devem ser preenchidos.</div>";
     } else {
-        // Criptografa a senha usando o BCRYPT
         $senha_cripto = password_hash($senha_pura, PASSWORD_BCRYPT);
 
-        // 🚀 O 'Ativo' agora é injetado direto e fixo na Query SQL
-        $sql = "INSERT INTO usuarios (nome, email, senha, num_celular, perfil, id_cliente, localizacao, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Ativo')";
+        $sql = "INSERT INTO usuarios (nome, email, senha, num_celular, perfil, id_cliente, status) VALUES (?, ?, ?, ?, ?, ?, 'Ativo')";
         
         $stmt = $conexao->prepare($sql);
-        
-        // 🚀 Ajustado para "sssssis" -> 5 strings, 1 inteiro (id_cliente) e 1 string (localizacao)
-        $stmt->bind_param("sssssis", $nome, $email, $senha_cripto, $num_celular, $perfil, $id_cliente, $localizacao); 
+        $stmt->bind_param("sssssi", $nome, $email, $senha_cripto, $num_celular, $perfil, $id_cliente); 
 
         try {
             if ($stmt->execute()) {
                 $cadastro_sucesso = true; 
             }
         } catch (mysqli_sql_exception $e) {
-            // Captura o erro do MySQL de Entrada Duplicada (Email já existe)
             if ($e->getCode() == 1062 || $conexao->errno == 1062) {
                 $mensagem = "<div class='msg-erro'>❌ Erro: Este e-mail já está cadastrado no sistema.</div>";
             } else {
@@ -69,9 +61,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// ---------------------------------------------
-// 4. REDIRECIONAMENTO APÓS CADASTRO BEM-SUCEDIDO
-// ---------------------------------------------
 if ($cadastro_sucesso === true) {
     $conexao->close();
     header("Location: lista_usuarios.php?status=success_add"); 
@@ -96,7 +85,7 @@ if ($cadastro_sucesso === true) {
     <hr>
 
     <main>
-        <?php echo $mensagem; // Exibe as mensagens de erro se houver ?>
+        <?php echo $mensagem; ?>
 
         <form method="POST" action="">           
             <label for="nome">Nome (*):</label>
@@ -110,9 +99,6 @@ if ($cadastro_sucesso === true) {
 
             <label for="senha">Senha (*):</label>
             <input type="password" id="senha" name="senha" placeholder="Digite uma senha segura" autocomplete="new-password" required>
-
-            <label for="localizacao">Localização:</label>
-            <input type="text" id="localizacao" name="localizacao" placeholder="Ex: Prédio B, TI, Remoto" maxlength="255">
 
             <label for="perfil">Perfil (*):</label>
             <select id="perfil" name="perfil" required>
@@ -165,7 +151,6 @@ if ($cadastro_sucesso === true) {
     </script>
 
     <?php 
-    // Fecha a conexão depois de renderizar as empresas no select
     $conexao->close();
     ?>
 </body>
