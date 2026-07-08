@@ -276,3 +276,25 @@ body.page-login {
     font-size: 14px; 
     text-align: center;
 }
+
+/* Container do link de cadastro */
+.cadastro-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #555; /* Cor do texto padrão da pergunta */
+}
+
+/* Estilo do link (Cadastre-se aqui) */
+.cadastro-link a {
+    color: #4CAF50; /* Verde padrão do seu botão de envio, ou a cor principal do seu sistema */
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+/* Efeito ao passar o mouse por cima do link */
+.cadastro-link a:hover {
+    color: #3e8e41; /* Um verde um pouco mais escuro para o efeito de hover */
+    text-decoration: underline;
+}

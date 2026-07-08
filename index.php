@@ -21,6 +21,19 @@
                 ?>
             </div>
         <?php endif; ?>
+
+    <?php if (isset($_GET['cadastro']) && $_GET['cadastro'] === 'sucesso'): ?>
+    <script>
+        // 1. Mostra o pop-up na tela
+        alert("✅ Conta criada com sucesso! Faça o seu login.");
+
+        // 2. Limpa o '?cadastro=sucesso' da URL sem recarregar a página
+        if (window.history.replaceState) {
+            const novaUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({ path: novaUrl }, '', novaUrl);
+        }
+    </script>
+    <?php endif; ?>
         
         <form action="processa_login.php" method="POST">
             <div class="form-group">
@@ -35,8 +48,13 @@
             
             <button type="submit">Entrar</button>
         </form>
+
+        <div class="cadastro-link">
+            Não tem uma conta? <a href="telas/usuarios/cadastrar_usuario.php?tipo=cliente">Cadastre-se aqui</a>
+        </div>
         
-    </div> </div>
+    </div> 
+</div>
 
 </body>
 </html>

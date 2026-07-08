@@ -1,37 +1,31 @@
 <?php
 session_start();
 
-// TRAVA DE SEGURANÇA: Só administrador acessa essa tela
-if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admin') {
-    header("Location: ../chamados/lista_chamados.php");
-    exit();
-}
-
-// ---------------------------------------------
-// 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
-// ---------------------------------------------
+// CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
 
 $mensagem = "";
 $cadastro_sucesso = false;
 
-// ---------------------------------------------
-// 2. BUSCA AS EMPRESAS ATIVAS PARA O SELECT DO FORMULÁRIO
-// ---------------------------------------------
+// BUSCA AS EMPRESAS ATIVAS PARA O SELECT DO FORMULÁRIO
 $sql_empresas = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
 $resultado_empresas = $conexao->query($sql_empresas);
 
-// ---------------------------------------------
-// 3. LÓGICA DE PROCESSAMENTO DO FORMULÁRIO (USUÁRIOS)
-// ---------------------------------------------
+// LÓGICA DE PROCESSAMENTO DO FORMULÁRIO (USUÁRIOS)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nome        = trim($_POST['nome']);
     $email       = trim($_POST['email']); 
     $num_celular = trim($_POST['num_celular']);
     $senha_pura  = trim($_POST['senha']);
-    $perfil      = trim($_POST['perfil']);
     $id_cliente  = (int)$_POST['id_cliente'];
+
+    // Se quem está cadastrando for Admin, pega o perfil do SELECT. Se não for, define como 'normal' automaticamente
+    if (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin') {
+        $perfil = trim($_POST['perfil']);
+    } else {
+        $perfil = 'normal';
+    }
 
     if (empty($nome) || empty($email) || empty($senha_pura) || empty($perfil) || empty($id_cliente)) {
         $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos obrigatórios (*) devem ser preenchidos.</div>";
@@ -63,7 +57,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 if ($cadastro_sucesso === true) {
     $conexao->close();
-    header("Location: lista_usuarios.php?status=success_add"); 
+    
+    // CORREÇÃO: Se quem cadastrou NÃO foi o admin (ou seja, é o cliente se autocadastrando), manda pro login
+    if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admin') {
+        header("Location: ../../index.php?cadastro=sucesso");
+    } else {
+        // Se for o admin, continua mandando para a lista normal de gerenciamento
+        header("Location: lista_usuarios.php?status=success_add"); 
+    }
     exit();
 }
 ?>
@@ -100,13 +101,15 @@ if ($cadastro_sucesso === true) {
             <label for="senha">Senha (*):</label>
             <input type="password" id="senha" name="senha" placeholder="Digite uma senha segura" autocomplete="new-password" required>
 
-            <label for="perfil">Perfil (*):</label>
-            <select id="perfil" name="perfil" required>
-                <option value="">-- Selecione o Perfil --</option>
-                <option value="normal">Usuário Comum (Cliente)</option>
-                <option value="tecnico">Técnico de Suporte</option> 
-                <option value="admin">Administrador do Sistema</option>
-            </select>
+            <?php if (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin'): ?>
+                <label for="perfil">Perfil (*):</label>
+                <select id="perfil" name="perfil" required>
+                    <option value="">-- Selecione o Perfil --</option>
+                    <option value="normal">Usuário Comum (Cliente)</option>
+                    <option value="tecnico">Técnico de Suporte</option> 
+                    <option value="admin">Administrador do Sistema</option>
+                </select>
+            <?php endif; ?>
 
             <label for="id_cliente">Empresa (*):</label>
             <select id="id_cliente" name="id_cliente" required>
@@ -125,9 +128,11 @@ if ($cadastro_sucesso === true) {
             <button type="submit">Cadastrar Usuário</button>
         </form>
         
-        <div class="voltar">
-             <a href="lista_usuarios.php">← Voltar para Lista de Usuários</a>
-        </div>
+        <?php if (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin'): ?>
+            <div class="voltar">
+                 <a href="lista_usuarios.php">← Voltar para Lista de Usuários</a>
+            </div>
+        <?php endif; ?>
     </main>
 
     <script>

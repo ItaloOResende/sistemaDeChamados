@@ -18,7 +18,7 @@
             // SE FOR USUÁRIO COMUM (CLIENTE): O menu fica limpo, só com o Sair
             else: 
             ?>
-                <li style="color: white; margin-right: 20px;">Olá, <?php echo htmlspecialchars($_SESSION['usuario_nome']); ?></li>
+                Olá, <?php echo isset($_SESSION['usuario_nome']) ? htmlspecialchars($_SESSION['usuario_nome']) : 'Usuário'; ?>
                 <li><a href="../../logout.php">🚪 Sair</a></li>
             <?php endif; ?>
         </ul>
