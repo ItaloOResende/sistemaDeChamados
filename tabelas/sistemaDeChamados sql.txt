@@ -2,6 +2,19 @@ create database sistemadechamados;
 
 use sistemadechamados;
 
+-- 1. CRIAÇÃO DA TABELA DE CLIENTES
+CREATE TABLE `clientes` (
+  `id_cliente` int(11) NOT NULL AUTO_INCREMENT,
+  `nome_empresa` varchar(255) NOT NULL,
+  `localizacao` varchar(255) DEFAULT NULL,
+  `contato_principal` varchar(100) DEFAULT NULL,
+  `num_celular` varchar(20) DEFAULT NULL,
+  `email_contato` varchar(100) DEFAULT NULL,
+  `status_cliente` varchar(20) DEFAULT 'Ativo',
+  PRIMARY KEY (`id_cliente`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. CRIAÇÃO DA TABELA DE USUÁRIOS (COM ID EM MINÚSCULO)
 CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) NOT NULL,
@@ -16,20 +29,10 @@ CREATE TABLE `usuarios` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   KEY `id_cliente` (`id_cliente`),
-  CONSTRAINT `usuarios_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  CONSTRAINT `usuarios_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `clientes` (
-  `id_cliente` int(11) NOT NULL AUTO_INCREMENT,
-  `nome_empresa` varchar(255) NOT NULL,
-  `localizacao` varchar(255) DEFAULT NULL,
-  `contato_principal` varchar(100) DEFAULT NULL,
-  `num_celular` varchar(20) DEFAULT NULL,
-  `email_contato` varchar(100) DEFAULT NULL,
-  `status_cliente` varchar(20) DEFAULT 'Ativo',
-  PRIMARY KEY (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-
+-- 3. CRIAÇÃO DA TABELA DE CHAMADOS
 CREATE TABLE `chamados` (
   `id_chamado` int(11) NOT NULL AUTO_INCREMENT,
   `id_cliente` int(11) NOT NULL,
@@ -46,32 +49,18 @@ CREATE TABLE `chamados` (
   KEY `id_cliente` (`id_cliente`),
   KEY `id_usuario` (`id_usuario`),
   KEY `id_tecnico_atribuido` (`id_tecnico_atribuido`),
-  CONSTRAINT `chamados_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`),
-  CONSTRAINT `chamados_ibfk_2` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`),
-  CONSTRAINT `chamados_ibfk_3` FOREIGN KEY (`id_tecnico_atribuido`) REFERENCES `usuarios` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  CONSTRAINT `chamados_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`) ON DELETE CASCADE,
+  CONSTRAINT `chamados_ibfk_2` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chamados_ibfk_3` FOREIGN KEY (`id_tecnico_atribuido`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-------------------------------------------------------------
-------------------------------------------------------------
-------------------------------------------------------------
---Para funcionar a primeira vez (mude os valores para o contato admin)
-INSERT INTO clientes (
-    id_cliente, 
-    nome_empresa, 
-    localizacao, 
-    contato_principal, 
-    num_celular, 
-    email_contato, 
-    status_cliente
-) VALUES (
-    1, 
-    'Empresa Teste', 
-    'Localizacao Teste', 
-    'Contato Teste', 
-    '00000000000', 
-    'teste@teste.com.br', 
-    'Ativo'
-);
+-- ============================================================
+-- INSERTS INICIAIS (CARGA DO ADMIN)
+-- ============================================================
 
-INSERT INTO usuarios (nome, email, senha, num_celular, perfil, id_cliente, localizacao, status) 
-VALUES ('Administrador', 'pitchalobill@teste.com', '$2y$10$e0MYzWvV26ybyZf3U0v8mO8v7wP7Ymbe9X5A3ZREB0H8mS7yG0X8a', '31999999999', 'admin', 1, 'TI', 'Ativo');
+INSERT INTO clientes (id_cliente, nome_empresa, localizacao, contato_principal, num_celular, email_contato, status_cliente) 
+VALUES (1, 'Empresa Teste', 'Localizacao Teste', 'Contato Teste', '00000000000', 'teste@teste.com.br', 'Ativo');
+
+-- Correção: Removida a coluna 'localizacao' que não existe nessa estrutura de usuários
+INSERT INTO usuarios (nome, email, senha, num_celular, perfil, id_cliente, status) 
+VALUES ('Administrador', 'pitchalobill@teste.com', '$2y$10$e0MYzWvV26ybyZf3U0v8mO8v7wP7Ymbe9X5A3ZREB0H8mS7yG0X8a', '31999999999', 'admin', 1, 'Ativo');

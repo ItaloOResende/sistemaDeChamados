@@ -20,10 +20,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $senha_pura  = trim($_POST['senha']);
     $id_cliente  = (int)$_POST['id_cliente'];
 
-    // Se quem está cadastrando for Admin, pega o perfil do SELECT. Se não for, define como 'normal' automaticamente
-    if (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin') {
+    // 1. VERIFICA SE A TABELA DE USUÁRIOS ESTÁ TOTALMENTE VAZIA
+    $sql_check = "SELECT COUNT(*) AS total FROM usuarios";
+    $resultado_check = $conexao->query($sql_check);
+    $total_usuarios = 0;
+    
+    if ($resultado_check) {
+        $row_check = $resultado_check->fetch_assoc();
+        $total_usuarios = (int)$row_check['total'];
+    }
+
+    // 2. DEFINE O PERFIL COM BASE NA SUA LÓGICA GENIAL
+    if ($total_usuarios === 0) {
+        // Se for o primeirão da história do banco, vira Admin direto pelo formulário!
+        $perfil = 'admin';
+    } elseif (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin') {
+        // Se a tabela não estiver vazia e quem tá cadastrando for Admin, pega o valor do select
         $perfil = trim($_POST['perfil']);
     } else {
+        // Se a tabela não estiver vazia e for cadastro público, vira usuário comum
         $perfil = 'normal';
     }
 
@@ -56,13 +71,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 if ($cadastro_sucesso === true) {
-    $conexao->close();
-    
-    // CORREÇÃO: Se quem cadastrou NÃO foi o admin (ou seja, é o cliente se autocadastrando), manda pro login
+    // Se quem cadastrou NÃO foi o admin logado (ou seja, foi o primeiro autocadastro), manda pro login
     if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admin') {
+        // Fechamos a conexão antes do redirect
+        $conexao->close();
         header("Location: ../../index.php?cadastro=sucesso");
     } else {
-        // Se for o admin, continua mandando para a lista normal de gerenciamento
+        // Se for o admin logado criando outro usuário, continua mandando para a lista normal
+        $conexao->close();
         header("Location: lista_usuarios.php?status=success_add"); 
     }
     exit();
