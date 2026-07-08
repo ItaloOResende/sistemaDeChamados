@@ -33,21 +33,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $usuario = $_POST;
     } else {
         
-        // 🚀 CORRIGIDO: Removida a coluna 'localizacao' do banco das strings de UPDATE
-        if (isset($senha_nova) && $senha_nova !== '') {
+        // Verifica se o usuário digitou uma nova senha real
+        if (!empty($senha_nova)) {
             $senha_cripto = password_hash($senha_nova, PASSWORD_BCRYPT);
             $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ?, senha = ? WHERE id = ?";
         } else {
+            // Query corrigida sem o campo da senha
             $sql_update = "UPDATE usuarios SET nome = ?, email = ?, num_celular = ?, perfil = ?, id_cliente = ? WHERE id = ?";
         }
         
         try {
             $stmt_update = $conexao->prepare($sql_update);
             
-            // 🚀 CORRIGIDO: Recalculados os tipos no bind_param sem a string da localização
-            if (isset($senha_nova) && $senha_nova !== '') {
-                $stmt_update->bind_param("sssssii", $nome, $email, $num_celular, $perfil, $id_cliente, $senha_cripto, $id);
+            if (!empty($senha_nova)) {
+                // ORDEM EXATA DOS TIPOS:
+                // $nome (s), $email (s), $num_celular (s), $perfil (s), $id_cliente (i), $senha_cripto (s), $id (i)
+                // Resultado correto: "ssssisi"
+                $stmt_update->bind_param("ssssisi", $nome, $email, $num_celular, $perfil, $id_cliente, $senha_cripto, $id);
             } else {
+                // Sem senha: $nome (s), $email (s), $num_celular (s), $perfil (s), $id_cliente (i), $id (i)
+                // Resultado correto: "ssssii"
                 $stmt_update->bind_param("ssssii", $nome, $email, $num_celular, $perfil, $id_cliente, $id);
             }
 
@@ -76,7 +81,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id) && $id > 0 && !isset($usuario))) {
     $id_para_busca = isset($_GET['id']) ? (int)$_GET['id'] : $id; 
     
-    // 🚀 CORRIGIDO: Removido o campo 'localizacao' do SELECT original
     $sql_select = "SELECT id, nome, email, num_celular, perfil, id_cliente, status FROM usuarios WHERE id = ?";
     $stmt_select = $conexao->prepare($sql_select);
     $stmt_select->bind_param("i", $id_para_busca);
@@ -100,6 +104,7 @@ if (!isset($usuario) && empty($mensagem)) {
 
 <?php if (isset($usuario) && $usuario) { $usuario_encontrado = true; } ?>
 
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -167,7 +172,6 @@ if (!isset($usuario) && empty($mensagem)) {
 
     <script src="../../js/mascaras.js?v=<?php echo time(); ?>"></script>
     <script>
-        // 🚀 CORRIGIDO: Formata o telefone logo na inicialização se já vier do banco de dados
         document.addEventListener("DOMContentLoaded", function() {
             const inputCelular = document.getElementById("num_celular");
             if (inputCelular && typeof mascaraCelular === 'function') {
