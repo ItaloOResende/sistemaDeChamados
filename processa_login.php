@@ -9,7 +9,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email_digitado = trim($_POST['email']);
     $senha_digitada = trim($_POST['senha']);
 
-    $sql = "SELECT id, nome, email, senha, perfil, status, id_cliente FROM usuarios WHERE email = ?";
+    $sql = "SELECT id, nome, email, senha, perfil, status, id_cliente FROM usuarios WHERE email = ? AND status = 'Ativo'";
     $stmt = $conexao->prepare($sql);
     $stmt->bind_param("s", $email_digitado);
     $stmt->execute();
@@ -18,9 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($resultado && $resultado->num_rows === 1) {
         $usuario = $resultado->fetch_assoc();
         
-        // TRUQUE DAS 2 LINHAS ATIVO PARA SEU AMBIENTE DE TESTE
-        $usuario['senha'] = password_hash($senha_digitada, PASSWORD_BCRYPT);
-        
+        // CORREÇÃO: Usamos a senha vinda do banco ($usuario['senha']) direto na verificação
         if (password_verify($senha_digitada, $usuario['senha'])) {
             $_SESSION['usuario_id']     = $usuario['id'];
             $_SESSION['usuario_nome']   = $usuario['nome'];
@@ -39,6 +37,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
     }
+    
+    // Se o e-mail não existir ou a senha estiver errada, cai aqui
     $conexao->close();
     header("Location: index.php?erro=dados_invalidos");
     exit();
