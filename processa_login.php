@@ -18,23 +18,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($resultado && $resultado->num_rows === 1) {
         $usuario = $resultado->fetch_assoc();
         
-        // CORREÇÃO: Usamos a senha vinda do banco ($usuario['senha']) direto na verificação
         if (password_verify($senha_digitada, $usuario['senha'])) {
-            $_SESSION['usuario_id']     = $usuario['id'];
-            $_SESSION['usuario_nome']   = $usuario['nome'];
-            $_SESSION['usuario_perfil'] = $usuario['perfil']; 
-            $_SESSION['id_cliente']     = $usuario['id_cliente'];
+            // Grava os dados na sessão
+            $_SESSION['usuario_id']         = $usuario['id'];
+            $_SESSION['usuario_nome']       = $usuario['nome'];
+            $_SESSION['usuario_perfil']     = $usuario['perfil']; 
+            
+            // 🔥 CORREÇÃO 1: Padronizado com o nome que o arquivo 'lista_chamados.php' está esperando
+            $_SESSION['usuario_id_cliente'] = $usuario['id_cliente'];
 
-            $perfil = $usuario['perfil'];
             $conexao->close();
 
-            if ($perfil === 'admin' || $perfil === 'tecnico') {
-                header("Location: telas/chamados/lista_chamados.php");
-                exit();
-            } else {
-                header("Location: telas/chamados/cadastrar_chamado_usuario.php");
-                exit();
-            }
+            // 🔥 CORREÇÃO 2: Agora TODOS os perfis vão para o Painel de Chamados unificado
+            // A LGPD e as travas que colocamos lá dentro vão filtrar o que cada um pode ver!
+            header("Location: telas/chamados/lista_chamados.php");
+            exit();
         }
     }
     

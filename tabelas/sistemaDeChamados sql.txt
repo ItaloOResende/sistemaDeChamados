@@ -57,10 +57,5 @@ CREATE TABLE `chamados` (
 -- ============================================================
 -- INSERTS INICIAIS (CARGA DO ADMIN)
 -- ============================================================
-
 INSERT INTO clientes (id_cliente, nome_empresa, localizacao, contato_principal, num_celular, email_contato, status_cliente) 
 VALUES (1, 'Empresa Teste', 'Localizacao Teste', 'Contato Teste', '00000000000', 'teste@teste.com.br', 'Ativo');
-
--- Correção: Removida a coluna 'localizacao' que não existe nessa estrutura de usuários
-INSERT INTO usuarios (nome, email, senha, num_celular, perfil, id_cliente, status) 
-VALUES ('Administrador', 'pitchalobill@teste.com', '$2y$10$e0MYzWvV26ybyZf3U0v8mO8v7wP7Ymbe9X5A3ZREB0H8mS7yG0X8a', '31999999999', 'admin', 1, 'Ativo');

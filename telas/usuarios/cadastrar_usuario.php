@@ -122,6 +122,7 @@ if ($cadastro_sucesso === true) {
                 <select id="perfil" name="perfil" required>
                     <option value="">-- Selecione o Perfil --</option>
                     <option value="normal">Usuário Comum (Cliente)</option>
+                    <option value="gestor">Gestor da empresa</option> 
                     <option value="tecnico">Técnico de Suporte</option> 
                     <option value="admin">Administrador do Sistema</option>
                 </select>

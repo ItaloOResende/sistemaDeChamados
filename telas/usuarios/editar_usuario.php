@@ -145,6 +145,7 @@ if (!isset($usuario) && empty($mensagem)) {
                 <select id="perfil" name="perfil" required>
                     <option value="">-- Selecione o Perfil --</option>
                     <option value="normal" <?php echo ($usuario['perfil'] === 'normal') ? 'selected' : ''; ?>>Usuário Comum (Cliente)</option>
+                    <option value="gestor" <?php echo ($usuario['perfil'] === 'gestor') ? 'selected' : ''; ?>>Gestor da empresa</option>
                     <option value="tecnico" <?php echo ($usuario['perfil'] === 'tecnico') ? 'selected' : ''; ?>>Técnico de Suporte</option>
                     <option value="admin" <?php echo ($usuario['perfil'] === 'admin') ? 'selected' : ''; ?>>Administrador do Sistema</option>
                 </select>

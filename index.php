@@ -22,18 +22,18 @@
             </div>
         <?php endif; ?>
 
-    <?php if (isset($_GET['cadastro']) && $_GET['cadastro'] === 'sucesso'): ?>
-    <script>
-        // 1. Mostra o pop-up na tela
-        alert("✅ Conta criada com sucesso! Faça o seu login.");
+        <?php if (isset($_GET['cadastro']) && $_GET['cadastro'] === 'sucesso'): ?>
+        <script>
+            // 1. Mostra o pop-up na tela
+            alert("✅ Conta criada com sucesso! Faça o seu login.");
 
-        // 2. Limpa o '?cadastro=sucesso' da URL sem recarregar a página
-        if (window.history.replaceState) {
-            const novaUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-            window.history.replaceState({ path: novaUrl }, '', novaUrl);
-        }
-    </script>
-    <?php endif; ?>
+            // 2. Limpa o '?cadastro=sucesso' da URL sem recarregar a página
+            if (window.history.replaceState) {
+                const novaUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({ path: novaUrl }, '', novaUrl);
+            }
+        </script>
+        <?php endif; ?>
         
         <form action="processa_login.php" method="POST">
             <div class="form-group">
@@ -50,7 +50,8 @@
         </form>
 
         <div class="cadastro-link">
-            Não tem uma conta? <a href="telas/usuarios/cadastrar_usuario.php?tipo=cliente">Cadastre-se aqui</a>
+            <!-- 🚀 LINK CORRIGIDO: Aponta direto para o arquivo de cadastro unificado sem o parâmetro antigo -->
+            Não tem uma conta? <a href="telas/usuarios/cadastrar_usuario.php">Cadastre-se aqui</a>
         </div>
         
     </div> 

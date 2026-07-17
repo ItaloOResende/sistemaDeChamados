@@ -1,10 +1,22 @@
 <?php
 session_start();
+
+// GARANTE QUE O USUÁRIO ESTÁ LOGADO
+if (!isset($_SESSION['usuario_perfil'])) {
+    header("Location: ../../index.php");
+    exit();
+}
+
 // 1. CONEXÃO E LÓGICA DE FILTROS
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 
 // Configura o charset usando a conexão que veio do include
 $conexao->set_charset("utf8mb4");
+
+// Puxa as informações essenciais da sessão para as travas de LGPD
+$perfil_logado      = $_SESSION['usuario_perfil'];
+$id_usuario_logado  = (int)$_SESSION['usuario_id'];
+$id_cliente_logado  = isset($_SESSION['usuario_id_cliente']) ? (int)$_SESSION['usuario_id_cliente'] : 0;
 
 // Captura de filtros do GET
 $f_id_chamado = $_GET['id_chamado'] ?? '';
@@ -17,7 +29,7 @@ $f_prioridade = $_GET['prioridade'] ?? '';
 $ordenar_por = $_GET['ordem'] ?? 'c.id_chamado'; // Ordenação padrão por ID
 $direcao     = $_GET['dir'] ?? 'DESC';
 
-// 🚀 SQL Base com Joins Atualizado para apontar para a tabela unificada 'usuarios' (u)
+// 🚀 SQL Base com Joins unificado apontando para 'usuarios'
 $sql = "SELECT c.*, cli.nome_empresa, u.nome AS nome_tecnico, u.status AS status_tecnico
         FROM chamados c
         LEFT JOIN clientes cli ON c.id_cliente = cli.id_cliente
@@ -25,8 +37,28 @@ $sql = "SELECT c.*, cli.nome_empresa, u.nome AS nome_tecnico, u.status AS status
         WHERE 1=1";
 
 $params = []; $types = "";
+
+// 🔒 TRAVA DE SEGURANÇA E LGPD VIA QUERY SQL BASE:
+if ($perfil_logado === 'gestor') {
+    // Gestor (TI Interna): Só vê chamados pertencentes à empresa dele
+    $sql .= " AND c.id_cliente = ?";
+    $params[] = $id_cliente_logado;
+    $types .= "i";
+} elseif ($perfil_logado === 'normal') {
+    // Usuário Comum: Só vê estritamente os chamados que ele próprio abriu
+    $sql .= " AND c.id_usuario = ?";
+    $params[] = $id_usuario_logado;
+    $types .= "i";
+}
+
+// Aplicação dos filtros dinâmicos do formulário
 if (!empty($f_id_chamado)) { $sql .= " AND c.id_chamado = ?"; $params[] = $f_id_chamado; $types .= "i"; }
-if (!empty($f_id_cliente)) { $sql .= " AND c.id_cliente = ?"; $params[] = $f_id_cliente; $types .= "i"; }
+
+// O filtro de cliente só é aplicado se quem está buscando for Admin ou Técnico Geral
+if (!empty($f_id_cliente) && ($perfil_logado === 'admin' || $perfil_logado === 'tecnico')) { 
+    $sql .= " AND c.id_cliente = ?"; $params[] = $f_id_cliente; $types .= "i"; 
+}
+
 if (!empty($f_id_tecnico)) { $sql .= " AND c.id_tecnico_atribuido = ?"; $params[] = $f_id_tecnico; $types .= "i"; }
 if (!empty($f_data_inicio)) { $sql .= " AND c.data_abertura >= ?"; $params[] = $f_data_inicio . " 00:00:00"; $types .= "s"; }
 if (!empty($f_status))      { $sql .= " AND c.status = ?"; $params[] = $f_status; $types .= "s"; }
@@ -42,8 +74,12 @@ if (!empty($params)) { $stmt->bind_param($types, ...$params); }
 $stmt->execute();
 $resultado = $stmt->get_result();
 
-// Filtros para os combos - Clientes ativos e 🚀 Técnicos puxados da tabela 'usuarios'
-$lista_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC");
+// Montagem condicional dos Combos de Filtro baseada na LGPD
+if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') {
+    // Admin/Técnico listam todas as empresas ativas do mercado
+    $lista_clientes = $conexao->query("SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC");
+}
+
 $lista_tecnicos = $conexao->query("SELECT id, nome AS nome_tecnico FROM usuarios WHERE (perfil = 'tecnico' OR perfil = 'admin') AND status = 'Ativo' ORDER BY nome ASC");
 ?>
 
@@ -88,14 +124,19 @@ $lista_tecnicos = $conexao->query("SELECT id, nome AS nome_tecnico FROM usuarios
                 <input type="number" name="id_chamado" value="<?php echo htmlspecialchars($f_id_chamado); ?>">
             </div>
             
-            <div class="campo"><label>Cliente</label>
-                <select name="id_cliente">
-                    <option value="">Todos (Ativos)</option>
-                    <?php while($c = $lista_clientes->fetch_assoc()): ?>
-                        <option value="<?php echo $c['id_cliente']; ?>" <?php echo $f_id_cliente == $c['id_cliente'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome_empresa']); ?></option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
+            <!-- 🔒 LGPD: O filtro de Cliente some completamente para Usuário Comum e Gestor -->
+            <?php if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico'): ?>
+                <div class="campo"><label>Cliente</label>
+                    <select name="id_cliente">
+                        <option value="">Todos (Ativos)</option>
+                        <?php if (isset($lista_clientes)): ?>
+                            <?php while($c = $lista_clientes->fetch_assoc()): ?>
+                                <option value="<?php echo $c['id_cliente']; ?>" <?php echo $f_id_cliente == $c['id_cliente'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome_empresa']); ?></option>
+                            <?php endwhile; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
 
             <div class="campo"><label>Técnico</label>
                 <select name="id_tecnico">
@@ -129,14 +170,22 @@ $lista_tecnicos = $conexao->query("SELECT id, nome AS nome_tecnico FROM usuarios
                 <a href="lista_chamados.php" class="btn-limpar">Limpar</a>
             </div>
 
-            <a href="cadastrar_chamado.php" class="btn-novo-chamado">+ Novo</a>
+            <!-- 🚀 BOTÃO DINÂMICO SOLICITADO: Aponta para processa_chamado_cliente.php se for usuário normal -->
+            <?php if ($perfil_logado === 'normal'): ?>
+                <a href="cadastrar_chamado_usuario.php" class="btn-novo-chamado">+ Novo</a>
+            <?php else: ?>
+                <a href="cadastrar_chamado.php" class="btn-novo-chamado">+ Novo</a>
+            <?php endif; ?>
         </form>
 
         <table>
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Cliente</th>
+                    <!-- 🔒 O Cabeçalho de Cliente some para o Usuário Comum -->
+                    <?php if ($perfil_logado !== 'normal'): ?>
+                        <th>Cliente</th>
+                    <?php endif; ?>
                     <th>Técnico</th>
                     <th>Abertura</th>
                     <th>Prioridade</th>
@@ -150,7 +199,10 @@ $lista_tecnicos = $conexao->query("SELECT id, nome AS nome_tecnico FROM usuarios
                     <tr>
                         <td><a href="detalhes_chamado.php?id=<?php echo $row['id_chamado']; ?>">#<?php echo $row['id_chamado']; ?></a></td>
                         
-                        <td><?php echo htmlspecialchars($row['nome_empresa']); ?></td>
+                        <!-- 🔒 Os dados da empresa só aparecem para Gestores, Técnicos e Admins Gerais -->
+                        <?php if ($perfil_logado !== 'normal'): ?>
+                            <td><?php echo htmlspecialchars($row['nome_empresa']); ?></td>
+                        <?php endif; ?>
                         
                         <td>
                             <?php 
@@ -176,10 +228,16 @@ $lista_tecnicos = $conexao->query("SELECT id, nome AS nome_tecnico FROM usuarios
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="7" style="text-align:center;">Nenhum chamado encontrado.</td></tr>
+                    <tr>
+                        <!-- Ajusta o colspan dinamicamente para não quebrar a tabela -->
+                        <td colspan="<?php echo $perfil_logado === 'normal' ? '6' : '7'; ?>" style="text-align:center;">
+                            Nenhum chamado encontrado.
+                        </td>
+                    </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </main>
+    <?php $conexao->close(); ?>
 </body>
 </html>

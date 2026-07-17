@@ -2,12 +2,19 @@
 session_start();
 date_default_timezone_set('America/Sao_Paulo');
 
+// Garante que o usuário está logado
+if (!isset($_SESSION['usuario_perfil'])) {
+    header("Location: ../../index.php");
+    exit();
+}
+
 // 1. CONFIGURAÇÃO E CONEXÃO
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
 
 $id_chamado = $_GET['id'] ?? null;
 $cadastro_sucesso = false;
+$perfil_logado = $_SESSION['usuario_perfil'];
 
 if (!$id_chamado) { 
     header("Location: lista_chamados.php"); 
@@ -18,8 +25,9 @@ if (!$id_chamado) {
 // 2. PROCESSAR ATUALIZAÇÃO (POST)
 // ---------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Busca os valores originais do próprio chamado atual para não quebrar o bind_param.
-    $sql_origem_dados = "SELECT id_cliente, id_usuario FROM chamados WHERE id_chamado = ?";
+    
+    // Busca os valores originais do próprio chamado atual para proteção e consistência
+    $sql_origem_dados = "SELECT id_cliente, id_usuario, id_tecnico_atribuido, prioridade, status, origem, descricao_solicitacao, solucao FROM chamados WHERE id_chamado = ?";
     $stmt_origem = $conexao->prepare($sql_origem_dados);
     $stmt_origem->bind_param("i", $id_chamado);
     $stmt_origem->execute();
@@ -29,11 +37,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id_cliente = $dados_originais['id_cliente'];
     $id_usuario = $dados_originais['id_usuario'];
     
-    $id_tecnico = !empty($_POST['id_tecnico']) ? (int)$_POST['id_tecnico'] : NULL;
-    $prioridade = $_POST['prioridade'];
-    $status     = $_POST['status'];
-    $origem     = $_POST['origem'];
-    $solucao    = $_POST['solucao'];
+    // 🔒 REQUISITO INVERTIDO: Quem altera o quê?
+    if ($perfil_logado === 'normal' || $perfil_logado === 'gestor') {
+        // Usuário/Gestor mudam APENAS a descrição. O resto herda o que já estava no banco.
+        $id_tecnico            = !empty($dados_originais['id_tecnico_atribuido']) ? (int)$dados_originais['id_tecnico_atribuido'] : NULL;
+        $prioridade            = $dados_originais['prioridade'];
+        $status                = $dados_originais['status'];
+        $origem                = $dados_originais['origem'];
+        $solucao               = $dados_originais['solucao']; // Não mexem na solução
+        $descricao_solicitacao = $_POST['descricao_solicitacao']; // 🚀 Permite alterar a descrição
+    } else {
+        // Admin e Técnico mudam a gestão do chamado e a solução, mas a descrição do cliente fica intacta
+        $id_tecnico            = !empty($_POST['id_tecnico']) ? (int)$_POST['id_tecnico'] : NULL;
+        $prioridade            = $_POST['prioridade'];
+        $status                = $_POST['status'];
+        $origem                = $_POST['origem'];
+        $solucao               = $_POST['solucao']; // 🚀 Permite alterar a solução
+        $descricao_solicitacao = $dados_originais['descricao_solicitacao']; // Preserva o texto original do cliente
+    }
     
     if ($status == 'Concluido' || $status == 'Cancelado') {
         $data_fechamento = date('Y-m-d H:i:s');
@@ -49,11 +70,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     status = ?, 
                     origem = ?, 
                     solucao = ?, 
-                    data_fechamento = ? 
+                    data_fechamento = ?,
+                    descricao_solicitacao = ?
                    WHERE id_chamado = ?";
     
     $stmt = $conexao->prepare($sql_update);
-    $stmt->bind_param("iiisssssi", 
+    // Mudou para 6 strings e 4 inteiros no bind_param por causa da nova variável desc
+    $stmt->bind_param("iiissssssi", 
         $id_cliente, 
         $id_usuario,
         $id_tecnico, 
@@ -61,7 +84,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $status, 
         $origem, 
         $solucao, 
-        $data_fechamento, 
+        $data_fechamento,
+        $descricao_solicitacao,
         $id_chamado
     );
     
@@ -73,9 +97,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // ---------------------------------------------
-// 3. RECUPERAÇÃO DOS DADOS DO CHAMADO (Mapeamento de Chaves Estrangeiras)
+// 3. RECUPERAÇÃO DOS DADOS DO CHAMADO
 // ---------------------------------------------
-// QUERY CORRIGIDA: Agora busca o 'num_celular' da tabela 'usuarios' (solicitante)
 $sql = "SELECT c.*, 
                cli.nome_empresa, 
                cli.localizacao AS local_cliente,
@@ -92,7 +115,6 @@ $sql = "SELECT c.*,
 $resultado = $conexao->query($sql);
 $chamado = $resultado->fetch_assoc();
 
-// Carga dos arrays de técnicos ativos para mapeamento dinâmico no front-end
 $res_tecnicos = $conexao->query("SELECT id, nome, num_celular FROM usuarios WHERE (perfil = 'tecnico' OR perfil = 'admin') AND status = 'Ativo' ORDER BY nome ASC");
 $tecnicos_data = [];
 while($t = $res_tecnicos->fetch_assoc()) {
@@ -119,7 +141,11 @@ while($t = $res_tecnicos->fetch_assoc()) {
 
     <?php include_once('../principal/menu.php'); ?>
 
-    <header><h1 style="text-align:center;">🛠️ Editar Chamado #<?php echo $id_chamado; ?></h1></header>
+    <header>
+        <h1 style="text-align:center;">
+            <?php echo ($perfil_logado === 'normal' || $perfil_logado === 'gestor') ? '📋 Detalhes do Chamado #' : '🛠️ Editar Chamado #'; ?><?php echo $id_chamado; ?>
+        </h1>
+    </header>
     
     <main style="max-width: 800px; margin: 0 auto; padding: 20px;">
         <?php if(isset($mensagem)) echo $mensagem; ?>
@@ -151,7 +177,7 @@ while($t = $res_tecnicos->fetch_assoc()) {
 
                 <div>
                     <label>Técnico:</label>
-                    <select id="id_tecnico" name="id_tecnico" onchange="atualizarCelularTecnico(this.value)">
+                    <select id="id_tecnico" name="id_tecnico" onchange="atualizarCelularTecnico(this.value)" <?php echo ($perfil_logado === 'normal' || $perfil_logado === 'gestor') ? 'disabled class="disabled-select"' : ''; ?>>
                         <option value="">-- Sem Técnico --</option>
                         <?php foreach($tecnicos_data as $t): ?>
                             <option value="<?php echo $t['id']; ?>" <?php echo ($t['id'] == $chamado['id_tecnico_atribuido']) ? 'selected' : ''; ?>>
@@ -168,7 +194,7 @@ while($t = $res_tecnicos->fetch_assoc()) {
 
                 <div>
                     <label>Origem:</label>
-                    <select name="origem">
+                    <select name="origem" <?php echo ($perfil_logado === 'normal' || $perfil_logado === 'gestor') ? 'disabled class="disabled-select"' : ''; ?>>
                         <option value="Telefone" <?php echo ($chamado['origem'] == 'Telefone') ? 'selected' : ''; ?>>Telefone</option>
                         <option value="Email" <?php echo ($chamado['origem'] == 'Email') ? 'selected' : ''; ?>>E-mail</option>
                         <option value="WhatsApp" <?php echo ($chamado['origem'] == 'WhatsApp') ? 'selected' : ''; ?>>WhatsApp</option>
@@ -177,7 +203,7 @@ while($t = $res_tecnicos->fetch_assoc()) {
                 </div>
                 <div>
                     <label>Prioridade:</label>
-                    <select name="prioridade">
+                    <select name="prioridade" <?php echo ($perfil_logado === 'normal' || $perfil_logado === 'gestor') ? 'disabled class="disabled-select"' : ''; ?>>
                         <option value="Baixa" <?php echo ($chamado['prioridade'] == 'Baixa') ? 'selected' : ''; ?>>Baixa</option>
                         <option value="Média" <?php echo ($chamado['prioridade'] == 'Média') ? 'selected' : ''; ?>>Média</option>
                         <option value="Alta" <?php echo ($chamado['prioridade'] == 'Alta') ? 'selected' : ''; ?>>Alta</option>
@@ -186,7 +212,7 @@ while($t = $res_tecnicos->fetch_assoc()) {
                 </div>
                 <div>
                     <label>Status Atual:</label>
-                    <select name="status">
+                    <select name="status" <?php echo ($perfil_logado === 'normal' || $perfil_logado === 'gestor') ? 'disabled class="disabled-select"' : ''; ?>>
                         <option value="Novo" <?php echo ($chamado['status'] == 'Novo') ? 'selected' : ''; ?>>Novo</option>
                         <option value="Em Atendimento" <?php echo ($chamado['status'] == 'Em Atendimento') ? 'selected' : ''; ?>>Em Atendimento</option>
                         <option value="Concluido" <?php echo ($chamado['status'] == 'Concluido') ? 'selected' : ''; ?>>Concluido</option>
@@ -200,21 +226,22 @@ while($t = $res_tecnicos->fetch_assoc()) {
                 </div>
                 
                 <div class="campo-cheio">
-                    <label>Problema Relatado:</label>
-                    <div style="background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                        <?php echo nl2br(htmlspecialchars($chamado['descricao_solicitacao'])); ?>
-                    </div>
+                    <label for="descricao_solicitacao"><strong>Problema Relatado:</strong></label>
+                    <!-- 🚀 SE FOR NORMAL OU GESTOR: Vira um campo editável. SE FOR TI/ADMIN: Fica travado como readonly -->
+                    <textarea id="descricao_solicitacao" name="descricao_solicitacao" required style="height: 100px; margin-top: 5px;" <?php echo ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') ? 'readonly style="background: #e9ecef; cursor: not-allowed;"' : ''; ?>><?php echo htmlspecialchars($chamado['descricao_solicitacao']); ?></textarea>
                 </div>
             </div>
 
             <label for="solucao"><strong>Solução Técnica:</strong></label>
-            <textarea id="solucao" name="solucao" placeholder="Descreva aqui o que foi feito para resolver o problema..." style="height: 100px; margin-top: 5px;"><?php echo htmlspecialchars($chamado['solucao'] ?? ''); ?></textarea>
+            <!-- 🔒 Solução bloqueada para escrita se for normal ou gestor -->
+            <textarea id="solucao" name="solucao" placeholder="Nenhuma solução registrada pela TI até o momento..." style="height: 100px; margin-top: 5px;" <?php echo ($perfil_logado === 'normal' || $perfil_logado === 'gestor') ? 'readonly style="background: #e9ecef; cursor: not-allowed;"' : ''; ?>><?php echo htmlspecialchars($chamado['solucao'] ?? ''); ?></textarea>
             
+            <!-- 🚀 O botão sempre aparece para permitir que todos salvem suas respectivas alterações autorizadas -->
             <button type="submit" class="btn-salvar">💾 Salvar Alterações</button>
         </form>
 
         <div style="margin-top: 20px; text-align: center;">
-            <a href="lista_chamados.php" style="text-decoration: none; color: #666;">← Cancelar e Voltar</a>
+            <a href="lista_chamados.php" style="text-decoration: none; color: #666;">← Voltar para a Lista</a>
         </div>
     </main>
 
@@ -223,6 +250,7 @@ while($t = $res_tecnicos->fetch_assoc()) {
 
     function atualizarCelularTecnico(idSelecionado) {
         const divCelular = document.getElementById('tel_tecnico_exibicao');
+        if (!divCelular) return;
         
         if (!idSelecionado) {
             divCelular.textContent = '---';
@@ -241,7 +269,7 @@ while($t = $res_tecnicos->fetch_assoc()) {
 
     <?php if ($cadastro_sucesso): ?>
         <script>
-            alert("✅ Chamado updated com sucesso!");
+            alert("✅ Chamado atualizado com sucesso!");
             window.location.href = "lista_chamados.php";
         </script>
     <?php endif; ?>
