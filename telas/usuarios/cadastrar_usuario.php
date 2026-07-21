@@ -52,12 +52,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $codigo_informado = strtoupper(trim($_POST['codigo_empresa'] ?? ''));
         
         if (!empty($codigo_informado)) {
-            $sql_cod = "SELECT id_cliente FROM clientes WHERE UPPER(codigo_empresa) = ? AND status_cliente = 'Ativo'";
+            $sql_cod = "SELECT id_cliente FROM clientes WHERE id_cliente = ? AND status_cliente = 'Ativo'";
             $stmt_cod = $conexao->prepare($sql_cod);
-            $stmt_cod->bind_param("s", $codigo_informado);
+            $stmt_cod->bind_param("i", $codigo_informado);
             $stmt_cod->execute();
             $res_cod = $stmt_cod->get_result();
-
+            
             if ($res_cod && $res_cod->num_rows === 1) {
                 $dados_cli = $res_cod->fetch_assoc();
                 $id_cliente = (int)$dados_cli['id_cliente'];
