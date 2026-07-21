@@ -57,5 +57,5 @@ CREATE TABLE `chamados` (
 -- ============================================================
 -- INSERTS INICIAIS (CARGA DO ADMIN)
 -- ============================================================
-INSERT INTO clientes (id_cliente, nome_empresa, localizacao, contato_principal, num_celular, email_contato, status_cliente) 
-VALUES (1, 'Empresa Teste', 'Localizacao Teste', 'Contato Teste', '00000000000', 'teste@teste.com.br', 'Ativo');
+INSERT INTO clientes (id_cliente, nome_empresa, codigo_empresa, localizacao, contato_principal, num_celular, email_contato, status_cliente) 
+VALUES (1, 'Empresa Teste', 'TESTE123', 'Localizacao Teste', 'Contato Teste', '00000000000', 'teste@teste.com.br', 'Ativo');

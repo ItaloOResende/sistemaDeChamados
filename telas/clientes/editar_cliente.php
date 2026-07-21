@@ -1,59 +1,52 @@
 <?php
 session_start();
-// ---------------------------------------------
+
+// TRAVA DE SEGURANÇA: Só administrador acessa essa tela
+if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admin') {
+    header("Location: ../chamados/lista_chamados.php");
+    exit();
+}
+
 // 1. CONFIGURAÇÃO DE CONEXÃO COM O BANCO DE DADOS
-// ---------------------------------------------
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
 
 $mensagem = "";
-$cadastro_sucesso = false;
+$cliente_encontrado = false;
 
-// ---------------------------------------------
 // 2. LÓGICA DE ATUALIZAÇÃO (POST)
-// ---------------------------------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // 2.1 Coleta e Limpeza
-    $id_cliente = (int)$_POST['id_cliente'];
-    $nome_empresa = trim($_POST['nome_empresa']);
-    $localizacao = trim($_POST['localizacao']);
+    $id_cliente        = (int)$_POST['id_cliente'];
+    $nome_empresa      = trim($_POST['nome_empresa']);
+    $codigo_empresa    = strtoupper(trim($_POST['codigo_empresa']));
+    $email_contato     = trim($_POST['email_contato']); 
     $contato_principal = trim($_POST['contato_principal']);
-    $email_contato = trim($_POST['email_contato']); 
-    // Limpeza da máscara
-    $num_celular = preg_replace("/[^0-9]/", "", $_POST['num_celular']); 
+    $num_celular       = preg_replace("/[^0-9]/", "", $_POST['num_celular']);
+    $localizacao       = trim($_POST['localizacao']);
 
-    // 2.2 Validação de Obrigatoriedade (Os 5 campos)
-    if (empty($nome_empresa) || empty($email_contato) || empty($contato_principal) || empty($num_celular) || empty($localizacao)) {
+    if (empty($nome_empresa) || empty($codigo_empresa) || empty($email_contato) || empty($contato_principal) || empty($num_celular) || empty($localizacao)) {
         $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos são obrigatórios.</div>";
-        // Mantém os dados no formulário em caso de erro
-        $cliente = $_POST; 
-        $cliente['id_cliente'] = $id_cliente; 
+        $cliente = $_POST;
     } else {
-        // 2.3 Query de Atualização
-        $sql_update = "UPDATE clientes SET nome_empresa = ?, localizacao = ?, contato_principal = ?, num_celular = ?, email_contato = ? WHERE id_cliente = ?";
+        $sql_update = "UPDATE clientes SET nome_empresa = ?, codigo_empresa = ?, email_contato = ?, contato_principal = ?, num_celular = ?, localizacao = ? WHERE id_cliente = ?";
         
         try {
             $stmt_update = $conexao->prepare($sql_update);
-            // Tipos: sssssi (5 strings e 1 inteiro para o ID)
-            $stmt_update->bind_param("sssssi", $nome_empresa, $localizacao, $contato_principal, $num_celular, $email_contato, $id_cliente); 
+            $stmt_update->bind_param("ssssssi", $nome_empresa, $codigo_empresa, $email_contato, $contato_principal, $num_celular, $localizacao, $id_cliente);
 
             if ($stmt_update->execute()) {
-                // Sucesso na atualização -> Redireciona para a lista com status
                 $conexao->close();
                 header("Location: lista_clientes.php?status=success_edit"); 
                 exit();
             }
 
         } catch (mysqli_sql_exception $e) {
-            // Tratamento de erro de Duplicidade no campo UNIQUE (email_contato)
             if ($e->getCode() == 1062) {
-                $mensagem = "<div class='msg-erro'>❌ Erro: O e-mail '$email_contato' já está cadastrado para outro cliente.</div>";
+                $mensagem = "<div class='msg-erro'>❌ Erro: O código de empresa '$codigo_empresa' ou e-mail já está em uso por outro cliente.</div>";
             } else {
                 $mensagem = "<div class='msg-erro'>❌ Erro ao atualizar: " . $e->getMessage() . "</div>";
             }
-            // Recarrega os dados preenchidos em caso de erro
             $cliente = $_POST;
-            $cliente['id_cliente'] = $id_cliente;
         }
 
         if (isset($stmt_update)) {
@@ -62,16 +55,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// ---------------------------------------------
-// 3. LÓGICA DE CARREGAMENTO DE DADOS (GET/PÓS-POST)
-// ---------------------------------------------
-if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id_cliente) && $id_cliente > 0 && !$cliente)) {
-    // Define o ID a ser buscado (do GET ou o ID que falhou no POST)
+// 3. LÓGICA DE CARREGAMENTO DOS DADOS DO CLIENTE (GET / PÓS-POST)
+if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id_cliente) && $id_cliente > 0 && !isset($cliente))) {
     $id_para_busca = isset($_GET['id']) ? (int)$_GET['id'] : $id_cliente; 
     
-    // Query de busca - COM TODOS OS CAMPOS
-    $sql_select = "SELECT id_cliente, nome_empresa, localizacao, contato_principal, email_contato, num_celular FROM clientes WHERE id_cliente = ?";
-    
+    $sql_select = "SELECT id_cliente, nome_empresa, codigo_empresa, email_contato, contato_principal, num_celular, localizacao FROM clientes WHERE id_cliente = ?";
     $stmt_select = $conexao->prepare($sql_select);
     $stmt_select->bind_param("i", $id_para_busca);
     $stmt_select->execute();
@@ -79,7 +67,7 @@ if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id_cliente) && $i
 
     if ($resultado->num_rows == 1) {
         $cliente = $resultado->fetch_assoc();
-    } else if (!$cliente) {
+    } else if (!isset($cliente)) {
         $mensagem = "<div class='msg-erro'>Cliente não encontrado ou ID inválido.</div>";
     }
     $stmt_select->close();
@@ -87,9 +75,7 @@ if ((isset($_GET['id']) && is_numeric($_GET['id'])) || (isset($id_cliente) && $i
 
 $conexao->close();
 
-if (!$cliente && empty($mensagem)) {
-    $mensagem = "<div class='msg-alerta'>Nenhum ID de cliente fornecido para edição.</div>";
-}
+if (isset($cliente) && $cliente) { $cliente_encontrado = true; }
 ?>
 
 <!DOCTYPE html>
@@ -99,7 +85,7 @@ if (!$cliente && empty($mensagem)) {
     <title>Editar Empresa</title>
     <link rel="stylesheet" href="../../estilos/estilos.css?v=<?php echo time(); ?>">
     <style>
-        textarea { resize: vertical; min-height: 100px; }
+        .caixa-codigo { background: #e7f3fe; border-left: 5px solid #2196F3; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -114,7 +100,7 @@ if (!$cliente && empty($mensagem)) {
     <main>
         <?php echo $mensagem; ?>
 
-        <?php if ($cliente): ?>
+        <?php if ($cliente_encontrado): ?>
             <form method="POST" action="">
                 <h2>Editando: <?php echo htmlspecialchars($cliente['nome_empresa'] ?? 'Dados Inválidos'); ?></h2>
                 
@@ -123,16 +109,21 @@ if (!$cliente && empty($mensagem)) {
                 <label for="nome_empresa">Nome da Empresa (*):</label>
                 <input type="text" id="nome_empresa" name="nome_empresa" value="<?php echo htmlspecialchars($cliente['nome_empresa']); ?>" required>
 
-                <label for="email_contato">E-mail (*):</label>
+                <!-- 🔑 CÓDIGO DA EMPRESA PARA AUTOCADASTRO / LGPD -->
+                <label for="codigo_empresa">Código da Empresa / LGPD (*):</label>
+                <input type="text" id="codigo_empresa" name="codigo_empresa" value="<?php echo htmlspecialchars($cliente['codigo_empresa'] ?? ''); ?>" required style="text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">
+                <small style="color: #666; font-size: 11px; display: block; margin-top: -8px; margin-bottom: 15px;">Este é o código de acesso que os funcionários usam para se cadastrar no sistema.</small>
+
+                <label for="email_contato">Email de Contato (*):</label>
                 <input type="email" id="email_contato" name="email_contato" value="<?php echo htmlspecialchars($cliente['email_contato']); ?>" required>
 
                 <label for="contato_principal">Contato Principal (*):</label>
                 <input type="text" id="contato_principal" name="contato_principal" value="<?php echo htmlspecialchars($cliente['contato_principal']); ?>" required>
 
-                <label for="num_celular">Número de Celular (*):</label>
-                <input type="tel" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($cliente['num_celular']); ?>" placeholder="(00) 00000-0000" maxlength="15" required>
-                
-                <label for="localizacao">Localização/Endereço (*):</label>
+                <label for="num_celular">Número / Celular (*):</label>
+                <input type="text" id="num_celular" name="num_celular" value="<?php echo htmlspecialchars($cliente['num_celular'] ?? ''); ?>" placeholder="(00) 00000-0000" maxlength="15" required>
+
+                <label for="localizacao">Localização (*):</label>
                 <input type="text" id="localizacao" name="localizacao" value="<?php echo htmlspecialchars($cliente['localizacao']); ?>" required>
                 
                 <button type="submit">Salvar Alterações</button>
@@ -144,6 +135,6 @@ if (!$cliente && empty($mensagem)) {
         </div>
     </main>
 
-    <script src="../../js/mascaras.js"></script>
+    <script src="../../js/mascaras.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

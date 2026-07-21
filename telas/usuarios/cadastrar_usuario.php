@@ -7,10 +7,13 @@ $conexao->set_charset("utf8mb4");
 
 $mensagem = "";
 $cadastro_sucesso = false;
+$e_admin_logado = isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin';
 
-// BUSCA AS EMPRESAS ATIVAS PARA O SELECT DO FORMULÁRIO
-$sql_empresas = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
-$resultado_empresas = $conexao->query($sql_empresas);
+// BUSCA AS EMPRESAS ATIVAS APENAS SE FOR O ADMIN LOGADO NAVEGANDO NO PAINEL
+if ($e_admin_logado) {
+    $sql_empresas = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
+    $resultado_empresas = $conexao->query($sql_empresas);
+}
 
 // LÓGICA DE PROCESSAMENTO DO FORMULÁRIO (USUÁRIOS)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -18,7 +21,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email       = trim($_POST['email']); 
     $num_celular = trim($_POST['num_celular']);
     $senha_pura  = trim($_POST['senha']);
-    $id_cliente  = (int)$_POST['id_cliente'];
 
     // 1. VERIFICA SE A TABELA DE USUÁRIOS ESTÁ TOTALMENTE VAZIA
     $sql_check = "SELECT COUNT(*) AS total FROM usuarios";
@@ -30,20 +32,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $total_usuarios = (int)$row_check['total'];
     }
 
-    // 2. DEFINE O PERFIL COM BASE NA SUA LÓGICA GENIAL
+    // 2. DEFINE O PERFIL
     if ($total_usuarios === 0) {
-        // Se for o primeirão da história do banco, vira Admin direto pelo formulário!
         $perfil = 'admin';
-    } elseif (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin') {
-        // Se a tabela não estiver vazia e quem tá cadastrando for Admin, pega o valor do select
+    } elseif ($e_admin_logado) {
         $perfil = trim($_POST['perfil']);
     } else {
-        // Se a tabela não estiver vazia e for cadastro público, vira usuário comum
         $perfil = 'normal';
     }
 
+    // 3. VALIDAÇÃO E RECUPERAÇÃO DO ID_CLIENTE (LGPD SAFE)
+    $id_cliente = null;
+
+    if ($e_admin_logado) {
+        // Admin pega direto do select
+        $id_cliente = !empty($_POST['id_cliente']) ? (int)$_POST['id_cliente'] : null;
+    } else {
+        // Autocadastro/Gestor: Valida pelo Código da Empresa
+        $codigo_informado = strtoupper(trim($_POST['codigo_empresa'] ?? ''));
+        
+        if (!empty($codigo_informado)) {
+            $sql_cod = "SELECT id_cliente FROM clientes WHERE UPPER(codigo_empresa) = ? AND status_cliente = 'Ativo'";
+            $stmt_cod = $conexao->prepare($sql_cod);
+            $stmt_cod->bind_param("s", $codigo_informado);
+            $stmt_cod->execute();
+            $res_cod = $stmt_cod->get_result();
+
+            if ($res_cod && $res_cod->num_rows === 1) {
+                $dados_cli = $res_cod->fetch_assoc();
+                $id_cliente = (int)$dados_cli['id_cliente'];
+            } else {
+                $mensagem = "<div class='msg-erro'>❌ Erro: Código de empresa inválido ou inativo. Verifique com seu gestor.</div>";
+            }
+            $stmt_cod->close();
+        }
+    }
+
+    // Validação dos campos obrigatórios
     if (empty($nome) || empty($email) || empty($senha_pura) || empty($perfil) || empty($id_cliente)) {
-        $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos obrigatórios (*) devem ser preenchidos.</div>";
+        if (empty($mensagem)) {
+            $mensagem = "<div class='msg-erro'>❌ Erro: Todos os campos obrigatórios (*) devem ser preenchidos.</div>";
+        }
     } else {
         $senha_cripto = password_hash($senha_pura, PASSWORD_BCRYPT);
 
@@ -71,13 +100,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 if ($cadastro_sucesso === true) {
-    // Se quem cadastrou NÃO foi o admin logado (ou seja, foi o primeiro autocadastro), manda pro login
-    if (!isset($_SESSION['usuario_perfil']) || $_SESSION['usuario_perfil'] !== 'admin') {
-        // Fechamos a conexão antes do redirect
+    if (!$e_admin_logado) {
         $conexao->close();
         header("Location: ../../index.php?cadastro=sucesso");
     } else {
-        // Se for o admin logado criando outro usuário, continua mandando para a lista normal
         $conexao->close();
         header("Location: lista_usuarios.php?status=success_add"); 
     }
@@ -117,7 +143,7 @@ if ($cadastro_sucesso === true) {
             <label for="senha">Senha (*):</label>
             <input type="password" id="senha" name="senha" placeholder="Digite uma senha segura" autocomplete="new-password" required>
 
-            <?php if (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin'): ?>
+            <?php if ($e_admin_logado): ?>
                 <label for="perfil">Perfil (*):</label>
                 <select id="perfil" name="perfil" required>
                     <option value="">-- Selecione o Perfil --</option>
@@ -126,26 +152,31 @@ if ($cadastro_sucesso === true) {
                     <option value="tecnico">Técnico de Suporte</option> 
                     <option value="admin">Administrador do Sistema</option>
                 </select>
-            <?php endif; ?>
 
-            <label for="id_cliente">Empresa (*):</label>
-            <select id="id_cliente" name="id_cliente" required>
-                <option value="">-- Selecione a Empresa --</option>
-                <?php if ($resultado_empresas && $resultado_empresas->num_rows > 0): ?>
-                    <?php while($empresa = $resultado_empresas->fetch_assoc()): ?>
-                        <option value="<?php echo $empresa['id_cliente']; ?>">
-                            <?php echo htmlspecialchars($empresa['nome_empresa']); ?>
-                        </option>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <option value="" disabled>Nenhuma empresa cadastrada ou ativa</option>
-                <?php endif; ?>
-            </select>
+                <label for="id_cliente">Empresa (*):</label>
+                <select id="id_cliente" name="id_cliente" required>
+                    <option value="">-- Selecione a Empresa --</option>
+                    <?php if (isset($resultado_empresas) && $resultado_empresas->num_rows > 0): ?>
+                        <?php while($empresa = $resultado_empresas->fetch_assoc()): ?>
+                            <option value="<?php echo $empresa['id_cliente']; ?>">
+                                <?php echo htmlspecialchars($empresa['nome_empresa']); ?>
+                            </option>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <option value="" disabled>Nenhuma empresa cadastrada ou ativa</option>
+                    <?php endif; ?>
+                </select>
+            <?php else: ?>
+                <!-- 🚀 LGPD SAFE: O usuário público ou gestor digita o Código fornecido pela TI -->
+                <label for="codigo_empresa">Código da Empresa (*):</label>
+                <input type="text" id="codigo_empresa" name="codigo_empresa" placeholder="Ex: EMPRESA123" maxlength="20" style="text-transform: uppercase;" required>
+                <small style="color: #666; font-size: 11px; display: block; margin-top: -8px; margin-bottom: 12px;">Solicite o código de acesso ao responsável de TI da sua empresa.</small>
+            <?php endif; ?>
             
             <button type="submit">Cadastrar Usuário</button>
         </form>
         
-        <?php if (isset($_SESSION['usuario_perfil']) && $_SESSION['usuario_perfil'] === 'admin'): ?>
+        <?php if ($e_admin_logado): ?>
             <div class="voltar">
                  <a href="lista_usuarios.php">← Voltar para Lista de Usuários</a>
             </div>
