@@ -113,7 +113,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Identifica se o chamado foi gravado com sucesso
         <?php if (isset($_GET['sucesso']) && $_GET['sucesso'] == 1): ?>
             alert('Chamado aberto com sucesso!');
-            window.location.href = 'cadastrar_chamado_usuario.php';
+            window.location.href = 'lista_chamados.php';
         <?php endif; ?>
     </script>
 </body>
