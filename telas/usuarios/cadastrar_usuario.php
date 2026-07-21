@@ -52,9 +52,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $codigo_informado = strtoupper(trim($_POST['codigo_empresa'] ?? ''));
         
         if (!empty($codigo_informado)) {
-            $sql_cod = "SELECT id_cliente FROM clientes WHERE id_cliente = ? AND status_cliente = 'Ativo'";
+            // BUSCA CORRETA PELA COLUNA CODIGO_EMPRESA COMO STRING
+            $sql_cod = "SELECT id_cliente FROM clientes WHERE UPPER(codigo_empresa) = ? AND status_cliente = 'Ativo'";
             $stmt_cod = $conexao->prepare($sql_cod);
-            $stmt_cod->bind_param("i", $codigo_informado);
+            $stmt_cod->bind_param("s", $codigo_informado);
             $stmt_cod->execute();
             $res_cod = $stmt_cod->get_result();
             
@@ -130,7 +131,7 @@ if ($cadastro_sucesso === true) {
     <main>
         <?php echo $mensagem; ?>
 
-        <form method="POST" action="">           
+        <form method="POST" action="">          
             <label for="nome">Nome (*):</label>
             <input type="text" id="nome" name="nome" maxlength="255" required>
 
