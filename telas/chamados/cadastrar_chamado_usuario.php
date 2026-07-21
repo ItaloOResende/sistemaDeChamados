@@ -13,9 +13,16 @@ if (!isset($_SESSION['usuario_id'])) {
     exit();
 }
 
+// 3. RECUPERA O ID DO CLIENTE DA SESSÃO (USANDO O NOME CORRETO SALVO NO LOGIN)
+$id_cliente = $_SESSION['usuario_id_cliente'] ?? null; 
+
+if (!$id_cliente) {
+    die("❌ Erro: Seu usuário não possui uma empresa vinculada na sessão. Contate o suporte.");
+}
+
 $mensagem = "";
 
-// 3. CONEXÃO COM O BANCO DE DADOS
+// 4. CONEXÃO COM O BANCO DE DADOS
 $caminho_banco = __DIR__ . '/../../tabelas/conexao.php';
 if (!file_exists($caminho_banco)) {
     die("❌ Erro fatal: O PHP não achou o arquivo de conexão no caminho: " . $caminho_banco);
@@ -23,16 +30,10 @@ if (!file_exists($caminho_banco)) {
 include_once($caminho_banco);
 $conexao->set_charset("utf8mb4");
 
-// 4. PROCESSAMENTO DO FORMULÁRIO (QUANDO CLICA EM ENVIAR)
+// 5. PROCESSAMENTO DO FORMULÁRIO (QUANDO CLICA EM ENVIAR)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     $id_usuario = $_SESSION['usuario_id'];
-    $id_cliente = $_SESSION['id_cliente'] ?? null; 
-
-    if (!$id_cliente) {
-        die("❌ Erro: Seu usuário não possui uma empresa vinculada na sessão. Contate o suporte.");
-    }
-
     $descricao_solicitacao = trim($_POST['descricao']);
 
     if (empty($descricao_solicitacao)) {
