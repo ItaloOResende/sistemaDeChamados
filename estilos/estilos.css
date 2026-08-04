@@ -204,11 +204,22 @@ th { background-color: #f2f2f2; color: #333; }
 .msg-erro { color: red; background-color: #f8d7da; padding: 10px; border: 1px solid #f5c6cb; border-radius: 4px; margin-bottom: 15px; }
 
 .btn-acao { 
-    background-color: #007bff; color: white; padding: 5px 10px; 
-    text-decoration: none; border-radius: 3px; font-size: 0.9em;
+    display: inline-block;
+    background-color: #007bff; 
+    color: white; 
+    padding: 5px 10px; 
+    text-decoration: none; 
+    border-radius: 3px; 
+    font-size: 0.9em;
+    margin-right: 6px; /* CRIA O ESPAÇAMENTO ENTRE OS BOTÕES */
 }
-.btn-acao.exclui { background-color: #dc3545; }
-.voltar { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #007bff; }
+.btn-acao:last-child {
+    margin-right: 0; /* Remove a margem do último botão para não sobrar espaço */
+}
+
+.btn-acao.exclui { 
+    background-color: #dc3545; 
+}
 
 /* ============================================================
    6. TELA DE LOGIN (ESTILOS EXCLUSIVOS - FORÇANDO CENTRO)

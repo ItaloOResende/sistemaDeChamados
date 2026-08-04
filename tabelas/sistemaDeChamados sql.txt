@@ -54,6 +54,16 @@ CREATE TABLE `chamados` (
   CONSTRAINT `chamados_ibfk_3` FOREIGN KEY (`id_tecnico_atribuido`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS rotinas (
+    id_rotina INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(150) NOT NULL,
+    descricao TEXT NOT NULL,
+    prioridade VARCHAR(20) DEFAULT 'Media',
+    frequencia VARCHAR(20) DEFAULT 'Diario',
+    ativo TINYINT(1) DEFAULT 1,
+    criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================
 -- INSERTS INICIAIS (CARGA DO ADMIN)
 -- ============================================================
