@@ -309,3 +309,26 @@ body.page-login {
     color: #3e8e41; /* Um verde um pouco mais escuro para o efeito de hover */
     text-decoration: underline;
 }
+
+/* ============================================================
+   7. LINK VOLTAR CENTRALIZADO
+   ============================================================ */
+.voltar {
+    text-align: center;
+    margin: 20px auto;
+    width: 100%;
+}
+
+.voltar a {
+    display: inline-block;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.voltar a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}

@@ -44,16 +44,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $prioridade            = $dados_originais['prioridade'];
         $status                = $dados_originais['status'];
         $origem                = $dados_originais['origem'];
-        $solucao               = $dados_originais['solucao']; // Não mexem na solução
-        $descricao_solicitacao = $_POST['descricao_solicitacao']; // 🚀 Permite alterar a descrição
+        $solucao               = $dados_originais['solucao'];
+        $descricao_solicitacao = $_POST['descricao_solicitacao'];
     } else {
         // Admin e Técnico mudam a gestão do chamado e a solução, mas a descrição do cliente fica intacta
         $id_tecnico            = !empty($_POST['id_tecnico']) ? (int)$_POST['id_tecnico'] : NULL;
         $prioridade            = $_POST['prioridade'];
         $status                = $_POST['status'];
         $origem                = $_POST['origem'];
-        $solucao               = $_POST['solucao']; // 🚀 Permite alterar a solução
-        $descricao_solicitacao = $dados_originais['descricao_solicitacao']; // Preserva o texto original do cliente
+        $solucao               = $_POST['solucao'];
+        $descricao_solicitacao = $dados_originais['descricao_solicitacao'];
     }
     
     if ($status == 'Concluido' || $status == 'Cancelado') {
@@ -75,7 +75,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                    WHERE id_chamado = ?";
     
     $stmt = $conexao->prepare($sql_update);
-    // Mudou para 6 strings e 4 inteiros no bind_param por causa da nova variável desc
     $stmt->bind_param("iiissssssi", 
         $id_cliente, 
         $id_usuario,
@@ -135,6 +134,12 @@ while($t = $res_tecnicos->fetch_assoc()) {
         select, textarea { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
         .disabled-select { background: #e9ecef; cursor: not-allowed; color: #6c757d; }
         .btn-salvar { margin-top: 20px; width: 100%; padding: 12px; cursor: pointer; background-color: #28a745; color: white; border: none; font-weight: bold; border-radius: 4px; }
+        
+        /* Estilos do Anexo */
+        .box-anexo { background: #fff; border: 1px dashed #bbb; border-radius: 6px; padding: 15px; margin-top: 5px; }
+        .btn-download-anexo { display: inline-flex; align-items: center; gap: 6px; background-color: #007bff; color: white; padding: 8px 14px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px; transition: background-color 0.2s ease; }
+        .btn-download-anexo:hover { background-color: #0056b3; }
+        .preview-imagem { max-width: 280px; max-height: 180px; border-radius: 4px; border: 1px solid #ddd; display: block; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -227,16 +232,38 @@ while($t = $res_tecnicos->fetch_assoc()) {
                 
                 <div class="campo-cheio">
                     <label for="descricao_solicitacao"><strong>Problema Relatado:</strong></label>
-                    <!-- 🚀 SE FOR NORMAL OU GESTOR: Vira um campo editável. SE FOR TI/ADMIN: Fica travado como readonly -->
                     <textarea id="descricao_solicitacao" name="descricao_solicitacao" required style="height: 100px; margin-top: 5px;" <?php echo ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') ? 'readonly style="background: #e9ecef; cursor: not-allowed;"' : ''; ?>><?php echo htmlspecialchars($chamado['descricao_solicitacao']); ?></textarea>
                 </div>
+
+                <!-- 📎 ÁREA DE ANEXO DO CHAMADO -->
+                <div class="campo-cheio">
+                    <label><strong>Anexo:</strong></label>
+                    <div class="box-anexo">
+                        <?php if (!empty($chamado['anexo'])): 
+                            $caminho_anexo = '../../' . htmlspecialchars($chamado['anexo']);
+                            $extensao = strtolower(pathinfo($chamado['anexo'], PATHINFO_EXTENSION));
+                            $eh_imagem = in_array($extensao, ['jpg', 'jpeg', 'png', 'webp']);
+                        ?>
+                            <?php if ($eh_imagem): ?>
+                                <a href="<?php echo $caminho_anexo; ?>" target="_blank" title="Clique para ampliar">
+                                    <img src="<?php echo $caminho_anexo; ?>" alt="Anexo" class="preview-imagem">
+                                </a>
+                            <?php endif; ?>
+
+                            <a href="<?php echo $caminho_anexo; ?>" target="_blank" download class="btn-download-anexo">
+                                📥 Baixar / Visualizar Anexo (<?php echo strtoupper($extensao); ?>)
+                            </a>
+                        <?php else: ?>
+                            <span style="color: #777; font-size: 13px;">Nenhum anexo ou foto foi enviado neste chamado.</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
             </div>
 
             <label for="solucao"><strong>Solução Técnica:</strong></label>
-            <!-- 🔒 Solução bloqueada para escrita se for normal ou gestor -->
             <textarea id="solucao" name="solucao" placeholder="Nenhuma solução registrada pela TI até o momento..." style="height: 100px; margin-top: 5px;" <?php echo ($perfil_logado === 'normal' || $perfil_logado === 'gestor') ? 'readonly style="background: #e9ecef; cursor: not-allowed;"' : ''; ?>><?php echo htmlspecialchars($chamado['solucao'] ?? ''); ?></textarea>
             
-            <!-- 🚀 O botão sempre aparece para permitir que todos salvem suas respectivas alterações autorizadas -->
             <button type="submit" class="btn-salvar">💾 Salvar Alterações</button>
         </form>
 

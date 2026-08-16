@@ -10,10 +10,10 @@ if (!isset($_SESSION['usuario_perfil'])) {
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
 $conexao->set_charset("utf8mb4");
 
-$perfil_logado      = $_SESSION['usuario_perfil'];
-$id_cliente_logado  = isset($_SESSION['usuario_id_cliente']) ? (int)$_SESSION['usuario_id_cliente'] : 0;
+$perfil_logado       = $_SESSION['usuario_perfil'];
+$id_cliente_logado   = isset($_SESSION['usuario_id_cliente']) ? (int)$_SESSION['usuario_id_cliente'] : 0;
 
-// Se o usuário comum tentar entrar aqui de xereta, manda ele para a tela simplificada dele
+// Se o usuário comum tentar entrar aqui, manda ele para a tela dele
 if ($perfil_logado === 'normal') {
     header("Location: processa_chamado_cliente.php");
     exit();
@@ -49,11 +49,8 @@ if (isset($_GET['ajax_id_cliente'])) {
     exit();
 }
 
-// -----------------------------------------------------------------------------
-
-// CARGA DOS SELECTS (Renderização Inicial da Página baseada em LGPD/Perfil)
+// CARGA DOS SELECTS
 if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') {
-    // Admin/Técnico veem todas as empresas e técnicos globais
     $sql_clientes = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
     $resultado_clientes = $conexao->query($sql_clientes);
 
@@ -63,7 +60,6 @@ if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') {
     $sql_todos_usuarios = "SELECT id, nome FROM usuarios WHERE perfil = 'normal' AND status = 'Ativo' ORDER BY nome ASC";
     $resultado_usuarios = $conexao->query($sql_todos_usuarios);
 } elseif ($perfil_logado === 'gestor') {
-    // 🧠 REGRA DO GESTOR: Busca APENAS os usuários que pertencem à MESMA empresa que ele
     $sql_gestor_usuarios = "SELECT id, nome FROM usuarios WHERE id_cliente = ? AND status = 'Ativo' ORDER BY nome ASC";
     $stmt_gestor = $conexao->prepare($sql_gestor_usuarios);
     $stmt_gestor->bind_param("i", $id_cliente_logado);
@@ -76,35 +72,54 @@ $cadastro_sucesso = false;
 
 // PROCESSAMENTO DO FORMULÁRIO (POST)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Se for gestor, captura do campo hidden, senão captura do select
     $id_cliente = ($perfil_logado === 'gestor') ? $id_cliente_logado : (int)$_POST['id_cliente'];
-    
     $id_usuario = !empty($_POST['id_usuario']) ? (int)$_POST['id_usuario'] : NULL;
-    
-    // Gestor não envia técnico atribuído (fica nulo/fila) nem altera a prioridade (vai oculta como Média)
     $id_tecnico_atribuido = isset($_POST['id_tecnico_atribuido']) && !empty($_POST['id_tecnico_atribuido']) ? (int)$_POST['id_tecnico_atribuido'] : NULL;
     $prioridade           = $_POST['prioridade'] ?? 'Média';
     $descricao_solicitacao = $_POST['descricao_solicitacao'];
     $origem               = $_POST['origem'] ?? 'Sistema';
-
-    $sql = "INSERT INTO chamados (id_cliente, id_usuario, id_tecnico_atribuido, prioridade, descricao_solicitacao, origen) VALUES (?, ?, ?, ?, ?, ?)";
     
-    // Nota: Verifique se no seu banco de dados a coluna se chama 'origem' ou 'origen'. Ajuste no INSERT acima se necessário.
-    $sql = "INSERT INTO chamados (id_cliente, id_usuario, id_tecnico_atribuido, prioridade, descricao_solicitacao, origem) VALUES (?, ?, ?, ?, ?, ?)";
+    // Tratamento do Anexo
+    $caminho_anexo = NULL;
+    if (isset($_FILES['anexo']) && $_FILES['anexo']['error'] === UPLOAD_ERR_OK) {
+        $extensoes_permitidas = ['jpg', 'jpeg', 'png', 'webp', 'zip', 'rar', 'pdf'];
+        $nome_original = $_FILES['anexo']['name'];
+        $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
 
-    try {
-        $stmt = $conexao->prepare($sql);
-        $stmt->bind_param("iiisss", $id_cliente, $id_usuario, $id_tecnico_atribuido, $prioridade, $descricao_solicitacao, $origem); 
+        if (in_array($extensao, $extensoes_permitidas)) {
+            $diretorio_upload = __DIR__ . '/../../uploads/chamados/';
+            if (!is_dir($diretorio_upload)) {
+                mkdir($diretorio_upload, 0777, true);
+            }
 
-        if ($stmt->execute()) {
-            $cadastro_sucesso = true; 
+            $nome_seguro = uniqid('anexo_', true) . '.' . $extensao;
+            $destino = $diretorio_upload . $nome_seguro;
+
+            if (move_uploaded_file($_FILES['anexo']['tmp_name'], $destino)) {
+                $caminho_anexo = 'uploads/chamados/' . $nome_seguro;
+            }
+        } else {
+            $mensagem = "<div class='msg-erro'>Formato de arquivo não permitido! Envie imagens, ZIP, RAR ou PDF.</div>";
         }
-    } catch (mysqli_sql_exception $e) {
-        $mensagem = "<div class='msg-erro'>Erro ao abrir chamado: " . $e->getMessage() . "</div>";
     }
-    
-    if (isset($stmt)) {
-        $stmt->close(); 
+
+    if (empty($mensagem)) {
+        $sql = "INSERT INTO chamados (id_cliente, id_usuario, id_tecnico_atribuido, prioridade, descricao_solicitacao, anexo, origem) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try {
+            $stmt = $conexao->prepare($sql);
+            $stmt->bind_param("iiissss", $id_cliente, $id_usuario, $id_tecnico_atribuido, $prioridade, $descricao_solicitacao, $caminho_anexo, $origem); 
+
+            if ($stmt->execute()) {
+                $cadastro_sucesso = true; 
+            }
+        } catch (mysqli_sql_exception $e) {
+            $mensagem = "<div class='msg-erro'>Erro ao abrir chamado: " . $e->getMessage() . "</div>";
+        }
+        
+        if (isset($stmt)) {
+            $stmt->close(); 
+        }
     }
 }
 
@@ -127,10 +142,10 @@ $conexao->close();
     <main>
         <?php echo $mensagem; ?>
 
-        <form method="POST" action="">
+        <!-- Importante: enctype="multipart/form-data" para upload de arquivos -->
+        <form method="POST" action="" enctype="multipart/form-data">
             <h2>Detalhes da Solicitação</h2>
             
-            <!-- 🔒 LGPD: O select de clientes só renderiza se for Admin ou Técnico Geral -->
             <?php if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico'): ?>
                 <label for="id_cliente">Cliente (Empresa):</label>
                 <select id="id_cliente" name="id_cliente" required onchange="filtrarUsuariosPorEmpresa(this.value)">
@@ -142,7 +157,6 @@ $conexao->close();
                     <?php endwhile; ?>
                 </select>
             <?php else: ?>
-                <!-- Passa o ID da empresa do gestor oculto para o processamento do POST -->
                 <input type="hidden" name="id_cliente" value="<?php echo $id_cliente_logado; ?>">
             <?php endif; ?>
 
@@ -156,7 +170,6 @@ $conexao->close();
                 <?php endwhile; ?>
             </select>
 
-            <!-- 🔒 REQUISITO: Gestor não atribui Técnico -->
             <?php if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico'): ?>
                 <label for="id_tecnico_atribuido">Técnico Atribuído (Opcional):</label>
                 <select id="id_tecnico_atribuido" name="id_tecnico_atribuido">
@@ -169,7 +182,6 @@ $conexao->close();
                 </select>
             <?php endif; ?>
 
-            <!-- 🔒 REQUISITO: Gestor não define prioridade (vai oculta como 'Média') -->
             <?php if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico'): ?>
                 <label for="prioridade">Prioridade:</label>
                 <select id="prioridade" name="prioridade" required>
@@ -192,6 +204,9 @@ $conexao->close();
             
             <label for="descricao_solicitacao">Descrição Detalhada do Problema:</label>
             <textarea id="descricao_solicitacao" name="descricao_solicitacao" required></textarea>
+
+            <label for="anexo">Anexo (Opcional - jpg, png, zip ou rar):</label>
+            <input type="file" id="anexo" name="anexo" accept=".png, .jpg, .jpeg, .webp, .zip, .rar, .pdf">
             
             <button type="submit">Abrir Chamado</button>
         </form>
@@ -203,9 +218,6 @@ $conexao->close();
     <script src="../js/mascaras.js"></script>
 
     <script>
-    /* * Manipulação dinâmica do DOM usando Fetch
-     * Só executa o fetch se o elemento de cliente existir na tela (Admin/Tecnico)
-     */
     function filtrarUsuariosPorEmpresa(idCliente) {
         const selectUsuario = document.getElementById('id_usuario');
         if (!selectUsuario) return;

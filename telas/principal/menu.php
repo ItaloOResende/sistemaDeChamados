@@ -12,6 +12,7 @@
                 <li><a href="../chamados/lista_chamados.php">📋 Chamados</a></li>
                 <li><a href="../clientes/lista_clientes.php">🏭 Empresas</a></li>
                 <li><a href="../usuarios/lista_usuarios.php">👥 Usuários</a></li>
+                <li><a href="../rotinas/lista_rotinas.php">🤖 Rotinas</a></li>
                 <li><a href="../../logout.php">🚪 Sair</a></li>
             
             <?php 

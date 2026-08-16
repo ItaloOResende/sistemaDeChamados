@@ -1,0 +1,5 @@
+# Ignora todos os anexos e arquivos de teste
+uploads/chamados/*
+
+# Mantém o gitkeep para a pasta não sumir
+!uploads/chamados/.gitkeep
