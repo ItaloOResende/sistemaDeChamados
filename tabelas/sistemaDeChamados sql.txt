@@ -33,7 +33,7 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. CRIAÇÃO DA TABELA DE CHAMADOS
-CREATE TABLE `chamados` (
+CREATE TABLE IF NOT EXISTS `chamados` (
   `id_chamado` int(11) NOT NULL AUTO_INCREMENT,
   `id_cliente` int(11) NOT NULL,
   `id_usuario` int(11) NOT NULL,
@@ -43,6 +43,7 @@ CREATE TABLE `chamados` (
   `status` varchar(20) DEFAULT 'Novo',
   `prioridade` varchar(20) DEFAULT 'Media',
   `descricao_solicitacao` text NOT NULL,
+  `anexo` varchar(255) DEFAULT NULL,
   `solucao` text DEFAULT NULL,
   `origem` varchar(20) DEFAULT 'Portal',
   PRIMARY KEY (`id_chamado`),
