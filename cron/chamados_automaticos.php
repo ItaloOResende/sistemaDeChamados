@@ -4,27 +4,27 @@ require_once __DIR__ . '/../tabelas/conexao.php';
 
 $hoje = date('Y-m-d');
 $dataAtualFormatada = date('d/m/Y');
-$diaSemana = date('N'); // 1 = Segunda-feira
-$diaMes = date('j');    // Dia do mês (1 a 31)
+$diaSemana = (int) date('N'); // 1 = Segunda-feira
+$diaMes = (int) date('j');    // Dia do mês (1 a 31)
 
-// 1. Busca rotinas ativas com cliente preenchido
-$sql = "SELECT r.*, c.nome AS nome_cliente 
-        FROM rotinas r
-        INNER JOIN clientes c ON r.id_cliente = c.id_cliente
-        WHERE r.ativo = 1";
+// 1. Busca todas as rotinas ativas
+$sqlRotinas = "SELECT * FROM rotinas WHERE ativo = 1";
+$resRotinas = mysqli_query($conexao, $sqlRotinas);
 
-$res = mysqli_query($conexao, $sql);
-if (!$res) {
+if (!$resRotinas) {
     die("Erro ao buscar rotinas: " . mysqli_error($conexao));
 }
 
-$rotinas = mysqli_fetch_all($res, MYSQLI_ASSOC);
+// Busca todos os clientes para aplicar rotinas globais (id_cliente = NULL)
+$sqlClientes = "SELECT id_cliente FROM clientes";
+$resClientes = mysqli_query($conexao, $sqlClientes);
+$todosClientes = mysqli_fetch_all($resClientes, MYSQLI_ASSOC);
+
 $totalExecutadas = 0;
 
-foreach ($rotinas as $rotina) {
+while ($rotina = mysqli_fetch_assoc($resRotinas)) {
     $idRotina = $rotina['id_rotina'];
-    $idCliente = $rotina['id_cliente'];
-    $frequencia = $rotina['frequencia'];
+    $frequencia = trim($rotina['frequencia']);
     $ultimaExec = $rotina['ultima_execucao'];
 
     // Evita duplicidade no mesmo dia
@@ -34,46 +34,58 @@ foreach ($rotinas as $rotina) {
 
     $deveRodar = false;
 
-    // 2. Validação da regra de negócio por frequência
-    if ($frequencia === 'Diario') {
+    // 2. Validação da regra por frequência (com e sem acento)
+    if (in_array($frequencia, ['Diario', 'Diário', 'diario', 'diário'])) {
         $deveRodar = true;
-    } elseif ($frequencia === 'Semanal' && $diaSemana == 1) { 
-        // Toda Segunda-feira
-        $deveRodar = true;
-    } elseif ($frequencia === 'Mensal' && $diaMes == 1) { 
-        // Todo dia 1º do mês
-        $deveRodar = true;
+    } elseif (in_array($frequencia, ['Semanal', 'semanal']) && $diaSemana === 1) { 
+        $deveRodar = true; // Toda segunda-feira
+    } elseif (in_array($frequencia, ['Mensal', 'mensal']) && $diaMes === 1) { 
+        $deveRodar = true; // Todo dia 1º
     }
 
     if ($deveRodar) {
         $titulo = "[ROTINA " . strtoupper($frequencia) . "] " . $rotina['titulo'] . " - " . $dataAtualFormatada;
         $descricao = $rotina['descricao'];
         $prioridade = !empty($rotina['prioridade']) ? $rotina['prioridade'] : 'Media';
+        $descricaoCompleta = "{$titulo}\n\n{$descricao}";
         
-        // Define texto de solução
-        if (stripos($rotina['titulo'], 'firewall') !== false || stripos($rotina['titulo'], 'bloqueio') !== false) {
+        // Define texto padrão de solução
+        if (stripos($rotina['titulo'], 'firewall') !== false || stripos($rotina['titulo'], 'bloqueio') !== false || stripos($rotina['titulo'], 'ip') !== false) {
             $periodoAnterior = date('d/m/Y', strtotime('-1 day'));
             $solucao = "[Relatório de Segurança - WatchGuard Firebox]\n• Período: {$periodoAnterior} a {$dataAtualFormatada}\n• Status: ATIVA / OPERACIONAL\n• Mitigações aplicadas automaticamente.";
         } else {
             $solucao = "Atividade de rotina preventiva/operacional finalizada automaticamente pelo sistema em {$dataAtualFormatada}.";
         }
 
-        // 3. Insere o chamado Concluído
-        $stmtInsert = mysqli_prepare($conexao, "INSERT INTO chamados (id_cliente, id_usuario, id_tecnico_atribuido, data_abertura, data_fechamento, status, prioridade, descricao_solicitacao, solucao, origem) VALUES (?, 1, 1, NOW(), NOW(), 'Concluido', ?, ?, ?, 'Sistema')");
-        
-        $descricaoCompleta = "{$titulo}\n\n{$descricao}";
-        mysqli_stmt_bind_param($stmtInsert, "isss", $idCliente, $prioridade, $descricaoCompleta, $solucao);
-        mysqli_stmt_execute($stmtInsert);
+        // Define quais clientes receberão o chamado
+        $alvoClientes = [];
+        if (!empty($rotina['id_cliente'])) {
+            $alvoClientes[] = ['id_cliente' => $rotina['id_cliente']];
+        } else {
+            $alvoClientes = $todosClientes;
+        }
+
+        // 3. Insere os chamados como Concluído
+        $stmtInsert = mysqli_prepare(
+            $conexao, 
+            "INSERT INTO chamados (id_cliente, id_usuario, id_tecnico_atribuido, data_abertura, data_fechamento, status, prioridade, descricao_solicitacao, solucao, origem) 
+             VALUES (?, 1, 1, NOW(), NOW(), 'Concluido', ?, ?, ?, 'Sistema')"
+        );
+
+        foreach ($alvoClientes as $cli) {
+            $idCli = (int) $cli['id_cliente'];
+            mysqli_stmt_bind_param($stmtInsert, "isss", $idCli, $prioridade, $descricaoCompleta, $solucao);
+            mysqli_stmt_execute($stmtInsert);
+            $totalExecutadas++;
+        }
         mysqli_stmt_close($stmtInsert);
 
-        // 4. Marca a última execução como hoje
+        // 4. Marca a última execução como hoje na rotina
         $stmtUpdate = mysqli_prepare($conexao, "UPDATE rotinas SET ultima_execucao = ? WHERE id_rotina = ?");
         mysqli_stmt_bind_param($stmtUpdate, "si", $hoje, $idRotina);
         mysqli_stmt_execute($stmtUpdate);
         mysqli_stmt_close($stmtUpdate);
-
-        $totalExecutadas++;
     }
 }
 
-echo "Processamento concluído. {$totalExecutadas} rotinas geradas com sucesso!";
+echo "Processamento concluído. {$totalExecutadas} chamados gerados com sucesso!\n";
