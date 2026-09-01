@@ -3,3 +3,5 @@ uploads/chamados/*
 
 # Mantém o gitkeep para a pasta não sumir
 !uploads/chamados/.gitkeep
+
+servicos/config_email.php

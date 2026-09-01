@@ -77,14 +77,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt = $conexao->prepare($sql_update);
     $stmt->bind_param("iiissssssi", 
         $id_cliente, 
-        $id_usuario,
+        $id_usuario, 
         $id_tecnico, 
         $prioridade, 
         $status, 
         $origem, 
         $solucao, 
-        $data_fechamento,
-        $descricao_solicitacao,
+        $data_fechamento, 
+        $descricao_solicitacao, 
         $id_chamado
     );
     
@@ -135,11 +135,14 @@ while($t = $res_tecnicos->fetch_assoc()) {
         .disabled-select { background: #e9ecef; cursor: not-allowed; color: #6c757d; }
         .btn-salvar { margin-top: 20px; width: 100%; padding: 12px; cursor: pointer; background-color: #28a745; color: white; border: none; font-weight: bold; border-radius: 4px; }
         
-        /* Estilos do Anexo */
+        /* Container dos Anexos Múltiplos */
         .box-anexo { background: #fff; border: 1px dashed #bbb; border-radius: 6px; padding: 15px; margin-top: 5px; }
-        .btn-download-anexo { display: inline-flex; align-items: center; gap: 6px; background-color: #007bff; color: white; padding: 8px 14px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px; transition: background-color 0.2s ease; }
+        .galeria-anexos { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+        .card-anexo { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .preview-imagem { width: 130px; height: 95px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; display: block; margin-bottom: 8px; transition: transform 0.2s ease; }
+        .preview-imagem:hover { transform: scale(1.03); }
+        .btn-download-anexo { display: inline-block; background-color: #007bff; color: #fff !important; padding: 4px 10px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 11px; }
         .btn-download-anexo:hover { background-color: #0056b3; }
-        .preview-imagem { max-width: 280px; max-height: 180px; border-radius: 4px; border: 1px solid #ddd; display: block; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -235,24 +238,34 @@ while($t = $res_tecnicos->fetch_assoc()) {
                     <textarea id="descricao_solicitacao" name="descricao_solicitacao" required style="height: 100px; margin-top: 5px;" <?php echo ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') ? 'readonly style="background: #e9ecef; cursor: not-allowed;"' : ''; ?>><?php echo htmlspecialchars($chamado['descricao_solicitacao']); ?></textarea>
                 </div>
 
-                <!-- 📎 ÁREA DE ANEXO DO CHAMADO -->
+                <!-- 📎 ÁREA DE ANEXOS DO CHAMADO (MÚLTIPLAS FOTOS) -->
                 <div class="campo-cheio">
-                    <label><strong>Anexo:</strong></label>
+                    <label><strong>Anexos / Prints:</strong></label>
                     <div class="box-anexo">
                         <?php if (!empty($chamado['anexo'])): 
-                            $caminho_anexo = '../../' . htmlspecialchars($chamado['anexo']);
-                            $extensao = strtolower(pathinfo($chamado['anexo'], PATHINFO_EXTENSION));
-                            $eh_imagem = in_array($extensao, ['jpg', 'jpeg', 'png', 'webp']);
+                            $lista_anexos = explode(',', $chamado['anexo']);
                         ?>
-                            <?php if ($eh_imagem): ?>
-                                <a href="<?php echo $caminho_anexo; ?>" target="_blank" title="Clique para ampliar">
-                                    <img src="<?php echo $caminho_anexo; ?>" alt="Anexo" class="preview-imagem">
-                                </a>
-                            <?php endif; ?>
-
-                            <a href="<?php echo $caminho_anexo; ?>" target="_blank" download class="btn-download-anexo">
-                                📥 Baixar / Visualizar Anexo (<?php echo strtoupper($extensao); ?>)
-                            </a>
+                            <div class="galeria-anexos">
+                                <?php foreach ($lista_anexos as $item_anexo): 
+                                    $item_anexo = trim($item_anexo);
+                                    if (empty($item_anexo)) continue;
+                                    
+                                    $caminho_anexo = '../../' . htmlspecialchars($item_anexo);
+                                    $extensao = strtolower(pathinfo($item_anexo, PATHINFO_EXTENSION));
+                                    $eh_imagem = in_array($extensao, ['jpg', 'jpeg', 'png', 'webp']);
+                                ?>
+                                    <div class="card-anexo">
+                                        <?php if ($eh_imagem): ?>
+                                            <a href="<?php echo $caminho_anexo; ?>" target="_blank" title="Clique para ampliar em tela cheia">
+                                                <img src="<?php echo $caminho_anexo; ?>" alt="Anexo" class="preview-imagem">
+                                            </a>
+                                        <?php endif; ?>
+                                        <a href="<?php echo $caminho_anexo; ?>" target="_blank" download class="btn-download-anexo">
+                                            📥 Baixar (<?php echo strtoupper($extensao); ?>)
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         <?php else: ?>
                             <span style="color: #777; font-size: 13px;">Nenhum anexo ou foto foi enviado neste chamado.</span>
                         <?php endif; ?>

@@ -169,13 +169,7 @@ $lista_tecnicos = $conexao->query("SELECT id, nome AS nome_tecnico FROM usuarios
                 <button type="submit" class="btn-filtrar">Filtrar</button>
                 <a href="lista_chamados.php" class="btn-limpar">Limpar</a>
             </div>
-
-            <!-- 🚀 BOTÃO DINÂMICO SOLICITADO: Aponta para processa_chamado_cliente.php se for usuário normal -->
-            <?php if ($perfil_logado === 'normal'): ?>
-                <a href="cadastrar_chamado_usuario.php" class="btn-novo-chamado">+ Novo</a>
-            <?php else: ?>
-                <a href="cadastrar_chamado.php" class="btn-novo-chamado">+ Novo</a>
-            <?php endif; ?>
+            <a href="cadastrar_chamado.php" class="btn-novo-chamado">+ Novo</a>
         </form>
 
         <table>

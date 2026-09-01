@@ -140,6 +140,18 @@ input[type="number"], input[type="date"], input[type="password"], select, textar
     border-radius: 4px;
 }
 
+textarea { 
+    width: 100%; 
+    padding: 8px; 
+    margin-top: 5px; 
+    margin-bottom: 10px; 
+    box-sizing: border-box; 
+    border: 1px solid #ccc; 
+    border-radius: 4px; 
+    min-height: 160px; /* Define a altura inicial padrão */
+    resize: vertical;  /* Permite o usuário esticar mais se quiser */
+}
+
 .form-largo textarea {
     height: 120px;
     display: block;

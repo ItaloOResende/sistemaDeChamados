@@ -1,27 +1,22 @@
 <?php
 session_start();
 
-// Garante que o usuário está logado
-if (!isset($_SESSION['usuario_perfil'])) {
+// 1. TRAVA DE SEGURANÇA: Garante que o usuário está logado
+if (!isset($_SESSION['usuario_perfil']) || !isset($_SESSION['usuario_id'])) {
     header("Location: ../../index.php");
     exit();
 }
 
 include_once(__DIR__ . '/../../tabelas/conexao.php'); 
+require_once(__DIR__ . '/../../servicos/email_notificacao.php');
+
 $conexao->set_charset("utf8mb4");
 
 $perfil_logado       = $_SESSION['usuario_perfil'];
+$id_usuario_logado   = (int)$_SESSION['usuario_id'];
 $id_cliente_logado   = isset($_SESSION['usuario_id_cliente']) ? (int)$_SESSION['usuario_id_cliente'] : 0;
 
-// Se o usuário comum tentar entrar aqui, manda ele para a tela dele
-if ($perfil_logado === 'normal') {
-    header("Location: processa_chamado_cliente.php");
-    exit();
-}
-
-/* * INTERCEPTAÇÃO ASSÍNCRONA (API Embutida)
- * Só roda se for Admin ou Técnico geral selecionando empresas no combo
- */
+/* * INTERCEPTAÇÃO ASSÍNCRONA (Para Admin/Técnico filtrar usuários por empresa) */
 if (isset($_GET['ajax_id_cliente'])) {
     $id_cliente = (int)$_GET['ajax_id_cliente'];
     
@@ -49,7 +44,7 @@ if (isset($_GET['ajax_id_cliente'])) {
     exit();
 }
 
-// CARGA DOS SELECTS
+// CARGA DOS SELECTS CONFORME O PERFIL
 if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') {
     $sql_clientes = "SELECT id_cliente, nome_empresa FROM clientes WHERE status_cliente = 'Ativo' ORDER BY nome_empresa ASC";
     $resultado_clientes = $conexao->query($sql_clientes);
@@ -70,48 +65,163 @@ if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico') {
 $mensagem = "";
 $cadastro_sucesso = false;
 
+// FUNÇÃO PARA COMPRIMIR E SALVAR IMAGENS VIA GD
+function comprimirESalvarImagem($caminho_tmp, $destino, $qualidade = 80, $largura_maxima = 1600) {
+    list($largura_orig, $altura_orig, $tipo) = getimagesize($caminho_tmp);
+
+    switch ($tipo) {
+        case IMAGETYPE_JPEG:
+            $origem = imagecreatefromjpeg($caminho_tmp);
+            break;
+        case IMAGETYPE_PNG:
+            $origem = imagecreatefrompng($caminho_tmp);
+            break;
+        case IMAGETYPE_WEBP:
+            $origem = imagecreatefromwebp($caminho_tmp);
+            break;
+        default:
+            return false;
+    }
+
+    if ($largura_orig > $largura_maxima) {
+        $nova_largura = $largura_maxima;
+        $nova_altura = ($altura_orig / $largura_orig) * $nova_largura;
+    } else {
+        $nova_largura = $largura_orig;
+        $nova_altura = $altura_orig;
+    }
+
+    $nova_imagem = imagecreatetruecolor($nova_largura, $nova_altura);
+
+    $branco = imagecolorallocate($nova_imagem, 255, 255, 255);
+    imagefilledrectangle($nova_imagem, 0, 0, $nova_largura, $nova_altura, $branco);
+
+    imagecopyresampled($nova_imagem, $origem, 0, 0, 0, 0, $nova_largura, $nova_altura, $largura_orig, $altura_orig);
+    imagejpeg($nova_imagem, $destino, $qualidade);
+
+    imagedestroy($origem);
+    imagedestroy($nova_imagem);
+
+    return true;
+}
+
 // PROCESSAMENTO DO FORMULÁRIO (POST)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $id_cliente = ($perfil_logado === 'gestor') ? $id_cliente_logado : (int)$_POST['id_cliente'];
-    $id_usuario = !empty($_POST['id_usuario']) ? (int)$_POST['id_usuario'] : NULL;
-    $id_tecnico_atribuido = isset($_POST['id_tecnico_atribuido']) && !empty($_POST['id_tecnico_atribuido']) ? (int)$_POST['id_tecnico_atribuido'] : NULL;
-    $prioridade           = $_POST['prioridade'] ?? 'Média';
-    $descricao_solicitacao = $_POST['descricao_solicitacao'];
-    $origem               = $_POST['origem'] ?? 'Sistema';
     
-    // Tratamento do Anexo
-    $caminho_anexo = NULL;
-    if (isset($_FILES['anexo']) && $_FILES['anexo']['error'] === UPLOAD_ERR_OK) {
-        $extensoes_permitidas = ['jpg', 'jpeg', 'png', 'webp', 'zip', 'rar', 'pdf'];
-        $nome_original = $_FILES['anexo']['name'];
-        $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
+    // Tratamento dos dados conforme o perfil logado
+    if ($perfil_logado === 'normal') {
+        $id_cliente           = $id_cliente_logado;
+        $id_usuario           = $id_usuario_logado;
+        $id_tecnico_atribuido = NULL;
+        $prioridade           = 'Média';
+        $origem               = 'Portal';
+    } elseif ($perfil_logado === 'gestor') {
+        $id_cliente           = $id_cliente_logado;
+        $id_usuario           = !empty($_POST['id_usuario']) ? (int)$_POST['id_usuario'] : $id_usuario_logado;
+        $id_tecnico_atribuido = NULL;
+        $prioridade           = 'Média';
+        $origem               = 'Portal';
+    } else {
+        // Admin / Técnico
+        $id_cliente           = (int)$_POST['id_cliente'];
+        $id_usuario           = !empty($_POST['id_usuario']) ? (int)$_POST['id_usuario'] : NULL;
+        $id_tecnico_atribuido = !empty($_POST['id_tecnico_atribuido']) ? (int)$_POST['id_tecnico_atribuido'] : NULL;
+        $prioridade           = $_POST['prioridade'] ?? 'Média';
+        $origem               = $_POST['origem'] ?? 'Sistema';
+    }
 
-        if (in_array($extensao, $extensoes_permitidas)) {
-            $diretorio_upload = __DIR__ . '/../../uploads/chamados/';
-            if (!is_dir($diretorio_upload)) {
-                mkdir($diretorio_upload, 0777, true);
+    $descricao_solicitacao = trim($_POST['descricao_solicitacao']);
+
+    // Tratamento dos Anexos Múltiplos
+    $caminhos_anexos = [];
+    $diretorio_upload = __DIR__ . '/../../uploads/chamados/';
+
+    if (!is_dir($diretorio_upload)) {
+        mkdir($diretorio_upload, 0777, true);
+    }
+
+    if (isset($_FILES['anexos']) && !empty($_FILES['anexos']['name'][0])) {
+        $extensoes_permitidas = ['jpg', 'jpeg', 'png', 'webp'];
+        $total_arquivos = count($_FILES['anexos']['name']);
+
+        for ($i = 0; $i < $total_arquivos; $i++) {
+            if ($_FILES['anexos']['error'][$i] === UPLOAD_ERR_OK) {
+                $nome_original = $_FILES['anexos']['name'][$i];
+                $tmp_name = $_FILES['anexos']['tmp_name'][$i];
+                $extensao = strtolower(pathinfo($nome_original, PATHINFO_EXTENSION));
+
+                if (in_array($extensao, $extensoes_permitidas)) {
+                    $nome_seguro = uniqid('print_', true) . '.jpg';
+                    $destino = $diretorio_upload . $nome_seguro;
+
+                    if (comprimirESalvarImagem($tmp_name, $destino)) {
+                        $caminhos_anexos[] = 'uploads/chamados/' . $nome_seguro;
+                    }
+                } else {
+                    $mensagem = "<div class='msg-erro'>Apenas fotos e prints nos formatos JPG, PNG ou WEBP são permitidos!</div>";
+                    break;
+                }
             }
-
-            $nome_seguro = uniqid('anexo_', true) . '.' . $extensao;
-            $destino = $diretorio_upload . $nome_seguro;
-
-            if (move_uploaded_file($_FILES['anexo']['tmp_name'], $destino)) {
-                $caminho_anexo = 'uploads/chamados/' . $nome_seguro;
-            }
-        } else {
-            $mensagem = "<div class='msg-erro'>Formato de arquivo não permitido! Envie imagens, ZIP, RAR ou PDF.</div>";
         }
     }
+
+    $caminho_anexo_final = !empty($caminhos_anexos) ? implode(',', $caminhos_anexos) : NULL;
 
     if (empty($mensagem)) {
         $sql = "INSERT INTO chamados (id_cliente, id_usuario, id_tecnico_atribuido, prioridade, descricao_solicitacao, anexo, origem) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try {
             $stmt = $conexao->prepare($sql);
-            $stmt->bind_param("iiissss", $id_cliente, $id_usuario, $id_tecnico_atribuido, $prioridade, $descricao_solicitacao, $caminho_anexo, $origem); 
+            $stmt->bind_param("iiissss", $id_cliente, $id_usuario, $id_tecnico_atribuido, $prioridade, $descricao_solicitacao, $caminho_anexo_final, $origem); 
 
             if ($stmt->execute()) {
+                $novo_id_chamado = $stmt->insert_id;
                 $cadastro_sucesso = true; 
+
+                // 📧 DISPARO AUTOMÁTICO DE E-MAIL
+                // 1. Busca Admins e Técnicos
+                $sql_dest = "SELECT nome, email FROM usuarios 
+                             WHERE (LOWER(perfil) = 'admin' OR LOWER(perfil) = 'tecnico') 
+                               AND (status = 'Ativo' OR status = 'ativo' OR status = '1' OR status = 1)
+                               AND email IS NOT NULL 
+                               AND email != ''";
+                $res_dest = $conexao->query($sql_dest);
+                $destinatarios = [];
+                if ($res_dest) {
+                    while ($dest = $res_dest->fetch_assoc()) {
+                        $destinatarios[] = $dest;
+                    }
+                }
+
+                // 2. Se não achou destinatário no banco, envia para o e-mail do admin configurado
+                if (empty($destinatarios) && defined('SMTP_USER')) {
+                    $destinatarios[] = ['nome' => 'Equipe de Suporte TI', 'email' => SMTP_USER];
+                }
+
+                // 3. Busca o nome da empresa e solicitante
+                $sql_info = "SELECT c.nome_empresa, u.nome AS nome_usuario 
+                             FROM clientes c 
+                             LEFT JOIN usuarios u ON u.id = ? 
+                             WHERE c.id_cliente = ?";
+                $stmt_info = $conexao->prepare($sql_info);
+                if ($stmt_info) {
+                    $stmt_info->bind_param("ii", $id_usuario, $id_cliente);
+                    $stmt_info->execute();
+                    $info = $stmt_info->get_result()->fetch_assoc();
+                    $stmt_info->close();
+                }
+
+                // 4. Monta os dados e dispara
+                $dadosEnvio = [
+                    'id'         => $novo_id_chamado,
+                    'empresa'    => $info['nome_empresa'] ?? 'Empresa não identificada',
+                    'usuario'    => $info['nome_usuario'] ?? 'Solicitante não identificado',
+                    'prioridade' => $prioridade,
+                    'origem'     => $origem,
+                    'descricao'  => $descricao_solicitacao
+                ];
+
+                enviarNotificacaoNovoChamado($dadosEnvio, $destinatarios);
             }
         } catch (mysqli_sql_exception $e) {
             $mensagem = "<div class='msg-erro'>Erro ao abrir chamado: " . $e->getMessage() . "</div>";
@@ -142,7 +252,6 @@ $conexao->close();
     <main>
         <?php echo $mensagem; ?>
 
-        <!-- Importante: enctype="multipart/form-data" para upload de arquivos -->
         <form method="POST" action="" enctype="multipart/form-data">
             <h2>Detalhes da Solicitação</h2>
             
@@ -156,21 +265,17 @@ $conexao->close();
                         </option>
                     <?php endwhile; ?>
                 </select>
-            <?php else: ?>
-                <input type="hidden" name="id_cliente" value="<?php echo $id_cliente_logado; ?>">
-            <?php endif; ?>
 
-            <label for="id_usuario">Usuário / Solicitante (*):</label>
-            <select id="id_usuario" name="id_usuario" required>
-                <option value="">-- Selecione o Usuário --</option>
-                <?php while($usuario = $resultado_usuarios->fetch_assoc()): ?>
-                    <option value="<?php echo $usuario['id']; ?>">
-                        <?php echo htmlspecialchars($usuario['nome']); ?>
-                    </option>
-                <?php endwhile; ?>
-            </select>
+                <label for="id_usuario">Usuário / Solicitante (*):</label>
+                <select id="id_usuario" name="id_usuario" required>
+                    <option value="">-- Selecione o Usuário --</option>
+                    <?php while($usuario = $resultado_usuarios->fetch_assoc()): ?>
+                        <option value="<?php echo $usuario['id']; ?>">
+                            <?php echo htmlspecialchars($usuario['nome']); ?>
+                        </option>
+                    <?php endwhile; ?>
+                </select>
 
-            <?php if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico'): ?>
                 <label for="id_tecnico_atribuido">Técnico Atribuído (Opcional):</label>
                 <select id="id_tecnico_atribuido" name="id_tecnico_atribuido">
                     <option value="">-- Nenhum Técnico Atribuído --</option>
@@ -180,9 +285,7 @@ $conexao->close();
                         </option>
                     <?php endwhile; ?>
                 </select>
-            <?php endif; ?>
 
-            <?php if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico'): ?>
                 <label for="prioridade">Prioridade:</label>
                 <select id="prioridade" name="prioridade" required>
                     <option value="Baixa">Baixa</option>
@@ -190,23 +293,32 @@ $conexao->close();
                     <option value="Alta">Alta</option>
                     <option value="Urgente">Urgente</option>
                 </select>
-            <?php else: ?>
-                <input type="hidden" name="prioridade" value="Média">
+
+                <label for="origem">Origem da Solicitação:</label>
+                <select id="origem" name="origem" required>
+                    <option value="Sistema" selected>Sistema</option>
+                    <option value="Telefone">Telefone</option>
+                    <option value="Whatsapp">Whatsapp</option>
+                    <option value="Email">E-mail</option>
+                </select>
+
+            <?php elseif ($perfil_logado === 'gestor'): ?>
+                <label for="id_usuario">Usuário / Solicitante da Empresa (*):</label>
+                <select id="id_usuario" name="id_usuario" required>
+                    <option value="">-- Selecione o Usuário --</option>
+                    <?php while($usuario = $resultado_usuarios->fetch_assoc()): ?>
+                        <option value="<?php echo $usuario['id']; ?>">
+                            <?php echo htmlspecialchars($usuario['nome']); ?>
+                        </option>
+                    <?php endwhile; ?>
+                </select>
             <?php endif; ?>
 
-            <label for="origem">Origem da Solicitação:</label>
-            <select id="origem" name="origem" required>
-                <option value="Sistema" selected>Sistema</option>
-                <option value="Telefone">Telefone</option>
-                <option value="Whatsapp">Whatsapp</option>
-                <option value="Email">E-mail</option>
-            </select>
-            
-            <label for="descricao_solicitacao">Descrição Detalhada do Problema:</label>
-            <textarea id="descricao_solicitacao" name="descricao_solicitacao" required></textarea>
+            <label for="descricao_solicitacao">Descrição Detalhada do Problema (*):</label>
+            <textarea id="descricao_solicitacao" name="descricao_solicitacao" style="min-height: 160px;" placeholder="Descreva o problema com o máximo de detalhes possível..." required></textarea>
 
-            <label for="anexo">Anexo (Opcional - jpg, png, zip ou rar):</label>
-            <input type="file" id="anexo" name="anexo" accept=".png, .jpg, .jpeg, .webp, .zip, .rar, .pdf">
+            <label for="anexos">Fotos/Prints (Opcional):</label>
+            <input type="file" id="anexos" name="anexos[]" multiple accept="image/png, image/jpeg, image/jpg, image/webp">
             
             <button type="submit">Abrir Chamado</button>
         </form>
@@ -217,6 +329,7 @@ $conexao->close();
     </div>
     <script src="../js/mascaras.js"></script>
 
+    <?php if ($perfil_logado === 'admin' || $perfil_logado === 'tecnico'): ?>
     <script>
     function filtrarUsuariosPorEmpresa(idCliente) {
         const selectUsuario = document.getElementById('id_usuario');
@@ -237,6 +350,7 @@ $conexao->close();
             .catch(error => console.error('Erro na requisição:', error));
     }
     </script>
+    <?php endif; ?>
 
 <?php 
 if ($cadastro_sucesso === true) {
