@@ -99,8 +99,8 @@ function comprimirESalvarImagem($caminho_tmp, $destino, $qualidade = 80, $largur
     imagecopyresampled($nova_imagem, $origem, 0, 0, 0, 0, $nova_largura, $nova_altura, $largura_orig, $altura_orig);
     imagejpeg($nova_imagem, $destino, $qualidade);
 
-    imagedestroy($origem);
-    imagedestroy($nova_imagem);
+    //imagedestroy($origem);
+    //imagedestroy($nova_imagem);
 
     return true;
 }
@@ -175,54 +175,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bind_param("iiissss", $id_cliente, $id_usuario, $id_tecnico_atribuido, $prioridade, $descricao_solicitacao, $caminho_anexo_final, $origem); 
 
             if ($stmt->execute()) {
-                $novo_id_chamado = $stmt->insert_id;
-                $cadastro_sucesso = true; 
+    $novo_id_chamado = $stmt->insert_id;
+    $cadastro_sucesso = true;
 
-                // 📧 DISPARO AUTOMÁTICO DE E-MAIL
-                // 1. Busca Admins e Técnicos
-                $sql_dest = "SELECT nome, email FROM usuarios 
-                             WHERE (LOWER(perfil) = 'admin' OR LOWER(perfil) = 'tecnico') 
-                               AND (status = 'Ativo' OR status = 'ativo' OR status = '1' OR status = 1)
-                               AND email IS NOT NULL 
-                               AND email != ''";
-                $res_dest = $conexao->query($sql_dest);
-                $destinatarios = [];
-                if ($res_dest) {
-                    while ($dest = $res_dest->fetch_assoc()) {
-                        $destinatarios[] = $dest;
-                    }
-                }
+    $caminhoPHP   = '/data/data/com.termux/files/usr/bin/php';
+    $caminhoScript = escapeshellarg(__DIR__ . '/../../servicos/email_notificacao.php');
+    $arquivoLog   = '/data/data/com.termux/files/home/log_disparo.txt';
 
-                // 2. Se não achou destinatário no banco, envia para o e-mail do admin configurado
-                if (empty($destinatarios) && defined('SMTP_USER')) {
-                    $destinatarios[] = ['nome' => 'Equipe de Suporte TI', 'email' => SMTP_USER];
-                }
-
-                // 3. Busca o nome da empresa e solicitante
-                $sql_info = "SELECT c.nome_empresa, u.nome AS nome_usuario 
-                             FROM clientes c 
-                             LEFT JOIN usuarios u ON u.id = ? 
-                             WHERE c.id_cliente = ?";
-                $stmt_info = $conexao->prepare($sql_info);
-                if ($stmt_info) {
-                    $stmt_info->bind_param("ii", $id_usuario, $id_cliente);
-                    $stmt_info->execute();
-                    $info = $stmt_info->get_result()->fetch_assoc();
-                    $stmt_info->close();
-                }
-
-                // 4. Monta os dados e dispara
-                $dadosEnvio = [
-                    'id'         => $novo_id_chamado,
-                    'empresa'    => $info['nome_empresa'] ?? 'Empresa não identificada',
-                    'usuario'    => $info['nome_usuario'] ?? 'Solicitante não identificado',
-                    'prioridade' => $prioridade,
-                    'origem'     => $origem,
-                    'descricao'  => $descricao_solicitacao
-                ];
-
-                enviarNotificacaoNovoChamado($dadosEnvio, $destinatarios);
-            }
+    exec("$caminhoPHP $caminhoScript $novo_id_chamado > $arquivoLog 2>&1 &");
+}
         } catch (mysqli_sql_exception $e) {
             $mensagem = "<div class='msg-erro'>Erro ao abrir chamado: " . $e->getMessage() . "</div>";
         }
